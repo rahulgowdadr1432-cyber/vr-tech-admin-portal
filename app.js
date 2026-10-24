@@ -1,11 +1,11 @@
 /*
- VR Tech Solutions Admin Portal starter
- 1) Set SUPABASE_URL and SUPABASE_ANON_KEY below.
- 2) Use only the public anon/publishable key in browser code. NEVER put a service_role/secret key here.
- 3) Database tables have RLS enabled; create and test admin-only policies before using live data.
+ VR Tech Solutions Admin Portal
+ Uses the Supabase project URL and public publishable key.
+ NEVER put a service_role/secret key in browser code.
+ Configure and test admin-only RLS policies before using live data.
 */
-const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL_HERE";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY_HERE";
+const SUPABASE_URL = "https://rficwjxubmexlkplmpdv.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_XJJALDjMrAEUq_Qol9LiCA_UX79aNgj";
 let sb = null;
 const $ = (id) => document.getElementById(id);
 const tableNames = {
@@ -29,17 +29,17 @@ function showApp(){ $("loginView").classList.add("hidden"); $("appView").classLi
 function money(n){return "₹"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2});}
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 async function signIn(email,password){
- if(!sb){$("loginMessage").textContent="Setup required: edit app.js and add your Supabase Project URL and public anon/publishable key.";return;}
- const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(!sb){$("loginMessage").textContent="Supabase client could not initialize. Check the Supabase script and app.js configuration.";return;}
+ const {error}=await sb.auth.signInWithPassword({email,password});
  if(error){$("loginMessage").textContent=error.message;return;}
- // Authentication is not by itself sufficient for admin authorization; enforce admin-only RLS in the database.
+ // Login alone does not authorize database access; enforce admin-only RLS in Supabase.
  showApp();
 }
 async function signOut(){if(sb) await sb.auth.signOut();showLogin("You have signed out.");}
 async function forgotPassword(){
  const email=$("email").value.trim();
  if(!email){$("loginMessage").textContent="Enter your admin email first, then choose Forgot Password.";return;}
- if(!sb){$("loginMessage").textContent="Set up the Supabase URL/key in app.js first.";return;}
+ if(!sb){$("loginMessage").textContent="Supabase client could not initialize. Check app.js and the Supabase script.";return;}
  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href});
  $("loginMessage").textContent=error?error.message:"If this email belongs to an account, password reset instructions will be sent. Check your inbox.";
 }
@@ -64,7 +64,7 @@ ${stat("Invoices","—","Invoice records")}
 function pageHTML(page){
  if(page==="dashboard") return dashboardHTML();
  const title=pageInfo[page][0];
- if(page==="reports") return `<div class="grid">${stat("Income","—","Selected period")}${stat("Expenses","—","Selected period")}${stat("Net Profit","—","Income − expenses")}${stat("Payments Due","—","Invoice balance")}</div><div class="section"><h2>Reports</h2><p class="empty">Connect and secure the database before showing financial figures. Report totals should be calculated from saved records.</p></div>`;
+ if(page==="reports") return `<div class="grid">${stat("Income","—","Selected period")}${stat("Expenses","—","Selected period")}${stat("Net Profit","—","Income − expenses")}${stat("Payments Due","—","Invoice balance")}</div><div class="section"><h2>Reports</h2><p class="empty">Report totals should be calculated from saved records after database access is secured.</p></div>`;
  const forms={
  customers:[["Customer Name","name"],["Phone","phone"],["Email","email"],["Address","address"]],
  enquiries:[["Customer Name","customer_name"],["Phone","phone"],["Email","email"],["Service","service"],["Details","details"]],
@@ -74,7 +74,7 @@ function pageHTML(page){
  invoices:[["Invoice Number","invoice_number"],["Customer ID (optional)","customer_id"],["Total Amount (₹)","total_amount"],["Paid Amount (₹)","paid_amount"],["Invoice Date (YYYY-MM-DD)","invoice_date"]]
  };
  const fields=forms[page]||[];
- return `<div class="section"><h2>Add ${escapeHtml(title.replace(/s$/,""))}</h2><form id="recordForm" data-table="${tableNames[page]}"><div class="formrow">${fields.map(([label,key])=>`<div><label>${escapeHtml(label)}</label><input name="${key}" ${["price","amount","monthly_salary","total_amount","paid_amount","customer_id"].includes(key)?"type=number":key.includes("date")?"type=date":key==="email"?"type=email":"type=text"} ${["name","customer_name","project_name","transaction_type","invoice_number"].includes(key)?"required":""} ${key==="amount"||key==="price"||key==="monthly_salary"||key==="total_amount"||key==="paid_amount"?"min=0 step=0.01":""}></div>`).join("")}</div><button class="btn" type="submit">Save Record</button><div id="formMessage" class="message"></div></form></div>
+ return `<div class="section"><h2>Add ${escapeHtml(title.replace(/s$/,""))}</h2><form id="recordForm" data-table="${tableNames[page]}"><div class="formrow">${fields.map(([label,key])=>`<div><label>${escapeHtml(label)}</label><input name="${key}" ${["price","amount","monthly_salary","total_amount","paid_amount","customer_id"].includes(key)?"type=number":key.includes("date")?"type=date":key==="email"?"type=email":"type=text"} ${["name","customer_name","project_name","transaction_type","invoice_number"].includes(key)?"required":""} ${["amount","price","monthly_salary","total_amount","paid_amount"].includes(key)?"min=0 step=0.01":""}></div>`).join("")}</div><button class="btn" type="submit">Save Record</button><div id="formMessage" class="message"></div></form></div>
  <div class="section"><h2>${escapeHtml(title)} List</h2><div class="tablewrap" id="tableData"><div class="empty">Loading records…</div></div></div>`;
 }
 async function renderPage(page){
@@ -88,16 +88,16 @@ async function renderPage(page){
  if(page==="dashboard") await loadDashboard();
 }
 async function loadRecords(page){
- const holder=$("tableData"); if(!sb){holder.innerHTML='<div class="empty">Connect Supabase in app.js to load records.</div>';return;}
+ const holder=$("tableData"); if(!sb){holder.innerHTML='<div class="empty">Supabase client is not initialized. Check app.js settings.</div>';return;}
  const {data,error}=await sb.from(tableNames[page]).select("*").order("created_at",{ascending:false}).limit(100);
- if(error){holder.innerHTML=`<div class="empty">Could not load records: ${escapeHtml(error.message)}. Check admin-only RLS policies.</div>`;return;}
+ if(error){holder.innerHTML=`<div class="empty">Could not load records: ${escapeHtml(error.message)}. Check table columns and admin-only RLS policies.</div>`;return;}
  if(!data.length){holder.innerHTML='<div class="empty">No records yet.</div>';return;}
- const keys=Object.keys(data[0]).filter(k=>!["created_at"].includes(k)).slice(0,6);
+ const keys=Object.keys(data[0]).filter(k=>k!=="created_at").slice(0,6);
  holder.innerHTML=`<table><thead><tr>${keys.map(k=>`<th>${escapeHtml(k.replaceAll("_"," "))}</th>`).join("")}</tr></thead><tbody>${data.map(row=>`<tr>${keys.map(k=>`<td>${escapeHtml(row[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 async function saveRecord(e,page){
  e.preventDefault();const form=e.currentTarget;const msg=$("formMessage");
- if(!sb){msg.textContent="Set up Supabase URL/key in app.js first.";return;}
+ if(!sb){msg.textContent="Supabase client is not initialized. Check app.js settings.";return;}
  const obj=Object.fromEntries(new FormData(form).entries());
  for(const k of Object.keys(obj)){if(obj[k]==="") delete obj[k];}
  if(obj.customer_id) obj.customer_id=Number(obj.customer_id);
@@ -106,7 +106,7 @@ async function saveRecord(e,page){
  if(page==="projects"&&!obj.status)obj.status="New";
  if(page==="staff")obj.active=true;
  const {error}=await sb.from(tableNames[page]).insert(obj);
- if(error){msg.textContent="Save failed: "+error.message+" (Check database permissions/RLS).";return;}
+ if(error){msg.textContent="Save failed: "+error.message+" (Check database permissions/RLS and table columns).";return;}
  msg.textContent="Saved successfully.";form.reset();await loadRecords(page);
 }
 async function loadDashboard(){
@@ -115,7 +115,7 @@ async function loadDashboard(){
  const vals={};
  for(const [key,table] of Object.entries(counts)){const {count,error}=await sb.from(table).select("*",{count:"exact",head:true});vals[key]=error?"—":count;}
  const {data:tx,error:txErr}=await sb.from("transactions").select("transaction_type,amount");
- let income=0,expenses=0;if(!txErr)(tx||[]).forEach(r=>{if(r.transaction_type==="Income")income+=Number(r.amount||0);else expenses+=Number(r.amount||0);});
+ let income=0,expenses=0;if(!txErr)(tx||[]).forEach(r=>{if(r.transaction_type==="Income")income+=Number(r.amount||0);else if(r.transaction_type==="Expense")expenses+=Number(r.amount||0);});
  const {data:inv,error:invErr}=await sb.from("invoices").select("total_amount,paid_amount");
  let due=0;if(!invErr)(inv||[]).forEach(r=>due+=Number(r.total_amount||0)-Number(r.paid_amount||0));
  const cells=document.querySelectorAll(".stat .value");
@@ -128,4 +128,7 @@ $("logoutBtn").addEventListener("click",signOut);
 $("refreshBtn").addEventListener("click",()=>renderPage(document.querySelector("#nav button.active")?.dataset.page||"dashboard"));
 $("nav").addEventListener("click",e=>{const b=e.target.closest("button[data-page]");if(b)renderPage(b.dataset.page);});
 initClient();
-if(sb){sb.auth.getSession().then(({data})=>{if(data.session)showApp();});sb.auth.onAuthStateChange((_event,session)=>{if(session)showApp();});}
+if(sb){
+ sb.auth.getSession().then(({data})=>{if(data.session)showApp();});
+ sb.auth.onAuthStateChange((_event,session)=>{if(session)showApp();else showLogin();});
+  }
