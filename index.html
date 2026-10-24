@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VR Tech Solutions | Admin Portal</title>
+<style>
+:root{--bg:#090b10;--panel:#121620;--panel2:#181e2a;--gold:#d8b45a;--text:#f4f5f7;--muted:#9da6b5;--line:#2b3240;--green:#3cc58a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+button,input{font:inherit}.hidden{display:none!important}
+.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 18px 50px #0006}
+.brand{color:var(--gold);font-weight:800;letter-spacing:1.5px;font-size:20px}.sub{color:var(--muted);font-size:13px;margin:8px 0 24px}
+label{display:block;color:#cdd3de;font-size:13px;margin:14px 0 7px}input{width:100%;padding:13px 12px;border-radius:9px;border:1px solid var(--line);background:#0b0e14;color:white;outline:none}input:focus{border-color:var(--gold)}
+.btn{border:0;border-radius:9px;padding:12px 15px;background:var(--gold);color:#17130a;font-weight:700;cursor:pointer;width:100%;margin-top:18px}.btn.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}.message{font-size:13px;color:var(--muted);margin-top:12px;line-height:1.5}
+.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}.sidebar{background:#0d1017;border-right:1px solid var(--line);padding:22px 14px}.logo{padding:0 12px 24px;border-bottom:1px solid var(--line);margin-bottom:18px}.logo small{display:block;color:var(--muted);font-size:11px;margin-top:7px}.nav{display:grid;gap:6px}.nav button{width:100%;text-align:left;padding:12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#c9cfda;cursor:pointer}.nav button.active,.nav button:hover{background:#1b202b;border-color:#333b49;color:var(--gold)}.main{padding:24px;min-width:0}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px}.top h1{font-size:24px;margin:0}.top p{margin:6px 0 0;color:var(--muted);font-size:13px}.top-actions{display:flex;gap:10px}.smallbtn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 12px;border-radius:8px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.stat,.section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.stat .label{color:var(--muted);font-size:13px}.stat .value{font-size:27px;font-weight:800;margin-top:12px}.stat .hint{font-size:12px;color:var(--gold);margin-top:7px}.section{margin-top:16px}.section h2{font-size:16px;margin:0 0 14px}.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.quick button{padding:14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;text-align:left;cursor:pointer}.quick strong{display:block;color:var(--gold);margin-bottom:6px}.quick span{font-size:12px;color:var(--muted)}.notice{padding:12px 14px;background:#2a2415;border:1px solid #62502b;color:#f0dca7;border-radius:10px;font-size:13px;line-height:1.5;margin-top:16px}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:520px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:600}.empty{color:var(--muted);padding:18px 0;font-size:13px}.formrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.section input{margin-bottom:4px}.status{display:inline-block;padding:5px 8px;border-radius:20px;background:#202a28;color:#78e0b0;font-size:11px}
+@media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app{grid-template-columns:190px 1fr}.quick{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.app{display:block}.sidebar{padding:14px;border-right:0;border-bottom:1px solid var(--line)}.logo{padding:4px 6px 14px;margin-bottom:10px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;width:auto}.main{padding:16px}.top{align-items:flex-start}.top h1{font-size:20px}.top-actions{flex-direction:column}.grid{gap:9px}.stat{padding:13px}.stat .value{font-size:22px}.quick{grid-template-columns:1fr 1fr}.formrow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="loginView" class="wrap">
+  <div class="card">
+    <div class="brand">VR TECH SOLUTIONS</div>
+    <div class="sub">ADMIN PORTAL · Secure sign in</div>
+    <form id="loginForm">
+      <label for="email">Admin Email</label><input id="email" type="email" autocomplete="username" required placeholder="you@company.com">
+      <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required placeholder="Enter password">
+      <button class="btn" type="submit">Sign In</button>
+    </form>
+    <button class="btn secondary" id="forgotBtn" type="button">Forgot Password</button>
+    <div id="loginMessage" class="message">Setup required: add your Supabase Project URL and anon/publishable key in app.js.</div>
+  </div>
+</div>
+
+<div id="appView" class="app hidden">
+  <aside class="sidebar">
+    <div class="logo"><div class="brand">VR TECH SOLUTIONS</div><small>BUSINESS CONTROL CENTER</small></div>
+    <nav class="nav" id="nav">
+      <button class="active" data-page="dashboard">▦ Dashboard</button>
+      <button data-page="customers">♙ Customers</button>
+      <button data-page="enquiries">✉ Enquiries</button>
+      <button data-page="projects">▣ Projects</button>
+      <button data-page="finance">₹ Finance</button>
+      <button data-page="staff">♧ Staff & Salary</button>
+      <button data-page="invoices">▤ Invoices</button>
+      <button data-page="reports">▥ Reports</button>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="top"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your business at a glance</p></div><div class="top-actions"><button class="smallbtn" id="refreshBtn">Refresh</button><button class="smallbtn" id="logoutBtn">Sign out</button></div></div>
+    <div id="pageContent"></div>
+    <div class="notice">Security note: This starter interface is not ready for live customer data until Supabase URL/key, admin-only authorization, and Row Level Security policies are configured and tested.</div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+</body></html>
