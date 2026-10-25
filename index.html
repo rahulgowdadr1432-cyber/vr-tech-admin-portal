@@ -33,7 +33,48 @@ label{display:block;color:#cdd3de;font-size:13px;margin:14px 0 7px}input{width:1
     <div id="loginMessage" class="message">Setup required: add your Supabase Project URL and anon/publishable key in app.js.</div>
   </div>
 </div>
+<div id="loginMessage" class="message">
+  Sign in to your admin account.
+</div>
 
+<!-- Password Reset Section -->
+<div id="resetView" class="hidden">
+  <h2 style="margin-top:20px;">Reset Your Password</h2>
+
+  <form id="resetForm">
+    <label for="newPassword">New Password</label>
+    <input
+      id="newPassword"
+      type="password"
+      minlength="8"
+      autocomplete="new-password"
+      required
+      placeholder="Enter new password"
+    >
+
+    <label for="confirmPassword">Confirm New Password</label>
+    <input
+      id="confirmPassword"
+      type="password"
+      minlength="8"
+      autocomplete="new-password"
+      required
+      placeholder="Confirm new password"
+    >
+
+    <button class="btn" type="submit">Update Password</button>
+  </form>
+
+  <div id="resetMessage" class="message" role="status"></div>
+
+  <button
+    id="backToLoginBtn"
+    class="btn secondary"
+    type="button"
+  >
+    Back to Login
+  </button>
+</div>
 <div id="appView" class="app hidden">
   <aside class="sidebar">
     <div class="logo"><div class="brand">VR TECH SOLUTIONS</div><small>BUSINESS CONTROL CENTER</small></div>
