@@ -22,7 +22,7 @@ const pageInfo = {
  invoices:["Invoices","Track invoices and payments"],
  reports:["Reports","Review business performance"]
 };
-function configured(){return !SUPABASE_URL.includes("PASTE_") && !SUPABASE_ANON_KEY.includes("PASTE_");}
+function configured(){return !SUPABASE_URL.includes("https://rficwjxubmexlkplmpdv.supabase.co") && !SUPABASE_ANON_KEY.includes("sb_publishable_XJJALDjMrAEUq_Qol9LiCA_UX79aNgj");}
 function initClient(){if(configured() && window.supabase) sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}
 function showLogin(msg=""){ $("loginView").classList.remove("hidden"); $("appView").classList.add("hidden"); if(msg) $("loginMessage").textContent=msg; }
 function showApp(){ $("loginView").classList.add("hidden"); $("appView").classList.remove("hidden"); renderPage("dashboard"); }
