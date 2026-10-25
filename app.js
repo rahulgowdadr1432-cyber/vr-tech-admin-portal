@@ -37,11 +37,25 @@ async function signIn(email,password){
 }
 async function signOut(){if(sb) await sb.auth.signOut();showLogin("You have signed out.");}
 async function forgotPassword(){
- const email=$("email").value.trim();
- if(!email){$("loginMessage").textContent="Enter your admin email first, then choose Forgot Password.";return;}
- if(!sb){$("loginMessage").textContent="Supabase client could not initialize. Check app.js and the Supabase script.";return;}
- const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href});
- $("loginMessage").textContent=error?error.message:"If this email belongs to an account, password reset instructions will be sent. Check your inbox.";
+ const email = $("email").value.trim();
+
+ if(!email){
+   $("loginMessage").textContent = "Enter your admin email first.";
+   return;
+ }
+
+ if(!sb){
+   $("loginMessage").textContent = "Supabase is not initialized.";
+   return;
+ }
+
+ const { error } = await sb.auth.resetPasswordForEmail(email, {
+   redirectTo: "https://admin.vrtechsolutions24.in"
+ });
+
+ $("loginMessage").textContent = error
+   ? error.message
+   : "Password reset email sent. Please check your inbox.";
 }
 function stat(label,value,hint=""){return `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint}</div></div>`;}
 function dashboardHTML(){return `<div class="grid">
