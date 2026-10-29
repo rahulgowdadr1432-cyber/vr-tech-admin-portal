@@ -105,13 +105,101 @@ async function renderPage(page){
  if(page!=="dashboard"&&page!=="reports") await loadRecords(page);
  if(page==="dashboard") await loadDashboard();
 }
-async function loadRecords(page){
- const holder=$("tableData"); if(!sb){holder.innerHTML='<div class="empty">Supabase client is not initialized. Check app.js settings.</div>';return;}
- const {data,error}=await sb.from(tableNames[page]).select("*").order("created_at",{ascending:false}).limit(100);
- if(error){holder.innerHTML=`<div class="empty">Could not load records: ${escapeHtml(error.message)}. Check table columns and admin-only RLS policies.</div>`;return;}
- if(!data.length){holder.innerHTML='<div class="empty">No records yet.</div>';return;}
- const keys=Object.keys(data[0]).filter(k=>k!=="created_at").slice(0,6);
- holder.innerHTML=`<table><thead><tr>${keys.map(k=>`<th>${escapeHtml(k.replaceAll("_"," "))}</th>`).join("")}</tr></thead><tbody>${data.map(row=>`<tr>${keys.map(k=>`<td>${escapeHtml(row[k])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+async function loadRecords(page) {
+  const holder = $("tableData");
+
+  if (!holder) return;
+
+  holder.innerHTML = '<div class="empty">Loading records...</div>';
+
+  if (!sb) {
+    holder.innerHTML =
+      '<div class="empty">Supabase is not initialized. Please check configuration.</div>';
+    return;
+  }
+
+  try {
+    let query = sb
+      .from(tableNames[page])
+      .select("*")
+      .limit(100);
+
+    // Sort by creation date when displaying enquiries.
+    if (page === "enquiries") {
+      query = query.order("created_at", { ascending: false });
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Admin Portal database error:", error);
+
+      holder.innerHTML = `
+        <div class="empty">
+          <strong>Could not load ${escapeHtml(page)}.</strong>
+          <p>${escapeHtml(error.message)}</p>
+          <p>Check Supabase SELECT permissions (RLS), table name, and column names.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      holder.innerHTML = `
+        <div class="empty">
+          No ${escapeHtml(page)} found.
+          <p>Refresh the page or check whether your admin account can read this table.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Show the important enquiry fields first.
+    const preferredKeys = page === "enquiries"
+      ? ["customer_name", "phone", "email", "service", "details", "status", "created_at"]
+      : Object.keys(data[0]);
+
+    const keys = preferredKeys
+      .filter(key => Object.prototype.hasOwnProperty.call(data[0], key))
+      .slice(0, 8);
+
+    holder.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            ${keys.map(key =>
+              `<th>${escapeHtml(key.replaceAll("_", " "))}</th>`
+            ).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(row => `
+            <tr>
+              ${keys.map(key => {
+                let value = row[key];
+
+                if (key === "created_at" && value) {
+                  value = new Date(value).toLocaleString("en-IN");
+                }
+
+                return `<td>${escapeHtml(value ?? "-")}</td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error("Unexpected Admin Portal error:", err);
+
+    holder.innerHTML = `
+      <div class="empty">
+        Unexpected error: ${escapeHtml(err.message || "Please try again.")}
+      </div>
+    `;
+  }
 }
 async function saveRecord(e,page){
  e.preventDefault();const form=e.currentTarget;const msg=$("formMessage");
