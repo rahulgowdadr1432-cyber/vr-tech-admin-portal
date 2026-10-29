@@ -146,7 +146,32 @@ $("logoutBtn").addEventListener("click",signOut);
 $("refreshBtn").addEventListener("click",()=>renderPage(document.querySelector("#nav button.active")?.dataset.page||"dashboard"));
 $("nav").addEventListener("click",e=>{const b=e.target.closest("button[data-page]");if(b)renderPage(b.dataset.page);});
 initClient();
-if(sb){
- sb.auth.getSession().then(({data})=>{if(data.session)showApp();});
- sb.auth.onAuthStateChange((_event,session)=>{if(session)showApp();else showLogin();});
-  }
+
+if (!sb) {
+  showLogin("Supabase could not initialize. Check the Supabase library and configuration.");
+} else {
+  sb.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      showLogin("Could not check login session: " + error.message);
+      return;
+    }
+
+    if (data.session) {
+      showApp();
+    } else {
+      showLogin();
+    }
+  }).catch((error) => {
+    showLogin("Session error: " + error.message);
+  });
+
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+      if (session) {
+        setTimeout(() => showApp(), 0);
+      }
+    } else if (event === "SIGNED_OUT") {
+      showLogin();
+    }
+  });
+}
