@@ -1,98 +1,675 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VR Tech Solutions | Admin Portal</title>
+<meta name="theme-color" content="#09051a">
+<title>VR Tech Solutions | Admin Dashboard</title>
+
 <style>
-:root{--bg:#090b10;--panel:#121620;--panel2:#181e2a;--gold:#d8b45a;--text:#f4f5f7;--muted:#9da6b5;--line:#2b3240;--green:#3cc58a}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
-button,input{font:inherit}.hidden{display:none!important}
-.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 18px 50px #0006}
-.brand{color:var(--gold);font-weight:800;letter-spacing:1.5px;font-size:20px}.sub{color:var(--muted);font-size:13px;margin:8px 0 24px}
-label{display:block;color:#cdd3de;font-size:13px;margin:14px 0 7px}input{width:100%;padding:13px 12px;border-radius:9px;border:1px solid var(--line);background:#0b0e14;color:white;outline:none}input:focus{border-color:var(--gold)}
-.btn{border:0;border-radius:9px;padding:12px 15px;background:var(--gold);color:#17130a;font-weight:700;cursor:pointer;width:100%;margin-top:18px}.btn.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}.message{font-size:13px;color:var(--muted);margin-top:12px;line-height:1.5}
-.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}.sidebar{background:#0d1017;border-right:1px solid var(--line);padding:22px 14px}.logo{padding:0 12px 24px;border-bottom:1px solid var(--line);margin-bottom:18px}.logo small{display:block;color:var(--muted);font-size:11px;margin-top:7px}.nav{display:grid;gap:6px}.nav button{width:100%;text-align:left;padding:12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#c9cfda;cursor:pointer}.nav button.active,.nav button:hover{background:#1b202b;border-color:#333b49;color:var(--gold)}.main{padding:24px;min-width:0}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px}.top h1{font-size:24px;margin:0}.top p{margin:6px 0 0;color:var(--muted);font-size:13px}.top-actions{display:flex;gap:10px}.smallbtn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 12px;border-radius:8px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.stat,.section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.stat .label{color:var(--muted);font-size:13px}.stat .value{font-size:27px;font-weight:800;margin-top:12px}.stat .hint{font-size:12px;color:var(--gold);margin-top:7px}.section{margin-top:16px}.section h2{font-size:16px;margin:0 0 14px}.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.quick button{padding:14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;text-align:left;cursor:pointer}.quick strong{display:block;color:var(--gold);margin-bottom:6px}.quick span{font-size:12px;color:var(--muted)}.notice{padding:12px 14px;background:#2a2415;border:1px solid #62502b;color:#f0dca7;border-radius:10px;font-size:13px;line-height:1.5;margin-top:16px}
-.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:520px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:600}.empty{color:var(--muted);padding:18px 0;font-size:13px}.formrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.section input{margin-bottom:4px}.status{display:inline-block;padding:5px 8px;border-radius:20px;background:#202a28;color:#78e0b0;font-size:11px}
-@media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app{grid-template-columns:190px 1fr}.quick{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:650px){.app{display:block}.sidebar{padding:14px;border-right:0;border-bottom:1px solid var(--line)}.logo{padding:4px 6px 14px;margin-bottom:10px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;width:auto}.main{padding:16px}.top{align-items:flex-start}.top h1{font-size:20px}.top-actions{flex-direction:column}.grid{gap:9px}.stat{padding:13px}.stat .value{font-size:22px}.quick{grid-template-columns:1fr 1fr}.formrow{grid-template-columns:1fr}}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+ --bg:#080518;
+ --sidebar:#0c0820;
+ --panel:#160e30;
+ --panel2:#21123e;
+ --purple:#a855f7;
+ --pink:#d946ef;
+ --blue:#398bff;
+ --gold:#f5b82e;
+ --green:#10d99a;
+ --white:#f8f5ff;
+ --muted:#b5a8ce;
+ --line:rgba(177,116,255,.25);
+}
+*{box-sizing:border-box}
+body{
+ margin:0;
+ color:var(--white);
+ font-family:Inter,Arial,sans-serif;
+ background:
+ radial-gradient(ellipse at 65% 0%,#25104b 0,transparent 40%),
+ #080518;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+a{color:inherit;text-decoration:none}
+
+/* LOGIN */
+.wrap{
+ min-height:100vh;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ padding:20px;
+}
+.card{
+ width:100%;
+ max-width:430px;
+ padding:35px;
+ border:1px solid var(--line);
+ border-radius:22px;
+ background:linear-gradient(145deg,#21113d,#10091f);
+ box-shadow:0 20px 70px #0009,0 0 35px #a855f722;
+}
+.brand{font-size:22px;font-weight:900;letter-spacing:1px}
+.brand span{color:#c084fc}
+.sub{color:var(--muted);font-size:12px;letter-spacing:2px;margin:10px 0 25px}
+label{display:block;margin:15px 0 7px;font-size:13px;color:#e4d8f7}
+input{
+ width:100%;padding:14px;border:1px solid var(--line);
+ border-radius:10px;background:#0b0718;color:white;outline:none
+}
+input:focus{border-color:var(--purple);box-shadow:0 0 0 3px #a855f722}
+.btn{
+ border:0;border-radius:10px;padding:13px 17px;
+ background:linear-gradient(110deg,#7928e8,#c026d3);
+ color:white;font-weight:800;cursor:pointer;
+}
+.btn:hover{filter:brightness(1.12)}
+.btn.full{width:100%;margin-top:20px}
+.btn.secondary{background:#ffffff0b;border:1px solid var(--line);color:#e9d5ff}
+.message{font-size:13px;color:var(--muted);margin-top:12px;line-height:1.6}
+
+/* RESET */
+#resetView{
+ max-width:430px;margin:10vh auto;padding:30px;
+ background:var(--panel);border:1px solid var(--line);border-radius:20px
+}
+
+/* APP LAYOUT */
+.app{
+ min-height:100vh;
+ display:grid;
+ grid-template-columns:238px minmax(0,1fr);
+}
+.sidebar{
+ position:sticky;top:0;height:100vh;
+ background:rgba(12,8,32,.96);
+ border-right:1px solid var(--line);
+ padding:20px 14px;
+ display:flex;flex-direction:column;
+}
+.logo{
+ text-align:center;padding:0 5px 22px;
+ border-bottom:1px solid var(--line);
+}
+.logo-mark{
+ width:75px;height:65px;margin:0 auto 12px;
+ display:grid;place-items:center;
+ border:2px solid #a855f7;border-radius:18px;
+ color:#d8a7ff;font-size:35px;font-weight:900;font-style:italic;
+ background:linear-gradient(145deg,#52208e,#190b36);
+ box-shadow:0 0 28px #a855f755,inset 0 0 15px #a855f733;
+}
+.logo .brand{font-size:17px}
+.logo small{
+ display:block;margin-top:9px;color:var(--muted);
+ font-size:10px;letter-spacing:1.2px
+}
+.nav{display:grid;gap:7px;margin-top:22px}
+.nav button{
+ width:100%;display:flex;align-items:center;gap:12px;
+ padding:13px 12px;border:1px solid transparent;
+ border-radius:11px;background:transparent;color:#d3c8e7;
+ text-align:left;font-size:13px;font-weight:600;
+ transition:.2s
+}
+.nav button:hover{
+ background:#a855f71b;border-color:var(--line);color:white
+}
+.nav button.active{
+ color:white;
+ background:linear-gradient(100deg,#862be8,#6415b5);
+ border-color:#c084fc;
+ box-shadow:0 5px 22px #9333ea66;
+}
+.nav-icon{width:22px;text-align:center;font-size:19px}
+.sidebar-bottom{
+ margin-top:auto;padding:18px 13px;text-align:center;
+ border:1px solid var(--line);border-radius:17px;
+ background:linear-gradient(145deg,#32145b,#170d2d);
+}
+.sidebar-bottom .rocket{font-size:29px}
+.sidebar-bottom strong{display:block;margin:8px 0;font-size:13px}
+.sidebar-bottom p{font-size:11px;color:var(--muted);margin:5px 0 13px}
+.sidebar-bottom button{
+ border:0;border-radius:30px;padding:9px 16px;
+ color:white;background:linear-gradient(90deg,#8529e9,#c026d3);
+ font-size:11px;font-weight:800
+}
+
+/* MAIN */
+.main{min-width:0}
+.topbar{
+ height:88px;padding:0 28px;
+ display:flex;align-items:center;justify-content:space-between;
+ gap:15px;border-bottom:1px solid var(--line);
+ background:#0b071deF;
+ position:sticky;top:0;z-index:5;
+ backdrop-filter:blur(18px)
+}
+.top-left{display:flex;align-items:center;gap:20px;flex:1}
+.menu-toggle{
+ border:0;background:none;color:white;font-size:26px;display:none
+}
+.search{width:min(370px,100%);position:relative}
+.search input{
+ padding:12px 15px 12px 43px;border-radius:30px;
+ background:#160e2b;border-color:#6b3aa0
+}
+.search span{position:absolute;left:15px;top:10px;font-size:19px;color:#c5a4f0}
+.top-right{display:flex;align-items:center;gap:23px}
+.notification{
+ position:relative;border:0;background:none;color:white;font-size:23px
+}
+.notification b{
+ position:absolute;right:-7px;top:-8px;
+ background:#ec2458;border-radius:20px;padding:3px 6px;font-size:9px
+}
+.profile{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700}
+.avatar{
+ width:43px;height:43px;display:grid;place-items:center;
+ border-radius:50%;font-size:18px;
+ background:linear-gradient(140deg,#a855f7,#d946ef);
+ box-shadow:0 0 20px #a855f766
+}
+.content{padding:25px 28px 35px}
+
+/* WELCOME */
+.welcome{
+ min-height:155px;padding:20px 10px 24px;
+ position:relative;overflow:hidden;
+ display:flex;align-items:center;
+ background:
+ radial-gradient(ellipse at 75% 50%,#5b19a955,transparent 48%),
+ linear-gradient(100deg,#110821,#160a31 60%,#230b40);
+ border-bottom:1px solid #a855f744;
+}
+.welcome:after{
+ content:"";position:absolute;width:270px;height:270px;
+ right:10%;top:-145px;border:1px solid #a855f733;
+ border-radius:50%;box-shadow:0 0 0 35px #a855f70a,0 0 0 70px #a855f707
+}
+.welcome h1{font-size:34px;margin:0 0 9px;font-weight:900;letter-spacing:-1px}
+.welcome p{color:#d1c3e7;margin:0;font-size:14px}
+.welcome-tag{
+ display:inline-block;margin-top:15px;padding:6px 12px;
+ border:1px solid #b56bfa55;border-radius:30px;
+ color:#d8b4fe;font-size:10px;letter-spacing:1.5px
+}
+
+/* STAT CARDS */
+.grid{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:16px;margin-top:20px
+}
+.stat{
+ min-width:0;position:relative;overflow:hidden;
+ display:flex;align-items:center;gap:16px;
+ padding:20px 17px;border-radius:17px;
+ border:1px solid var(--line);
+ box-shadow:0 10px 30px #0004;
+ transition:.25s
+}
+.stat:hover{transform:translateY(-4px);filter:brightness(1.13)}
+.stat.purple{background:linear-gradient(130deg,#4b1479,#190c32)}
+.stat.blue{background:linear-gradient(130deg,#103d91,#0d193d)}
+.stat.gold{background:linear-gradient(130deg,#76501c,#2a1b19)}
+.stat.green{background:linear-gradient(130deg,#075d50,#102b32)}
+.stat-icon{
+ flex-shrink:0;width:65px;height:65px;border-radius:19px;
+ display:grid;place-items:center;font-size:29px;
+ background:#ffffff19;border:1px solid #ffffff27
+}
+.stat-info{min-width:0}
+.stat-info span{display:block;color:#e2d8ef;font-size:12px;white-space:nowrap}
+.stat-info strong{display:block;font-size:26px;margin-top:7px;white-space:nowrap}
+.stat-info small{display:block;margin-top:8px;color:#29e99c;font-size:11px;font-weight:700}
+
+/* PANELS */
+.row{
+ display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.85fr);
+ gap:18px;margin-top:20px
+}
+.panel{
+ min-width:0;border:1px solid var(--line);border-radius:17px;
+ background:linear-gradient(145deg,#1b1034,#100a21);
+ box-shadow:0 12px 35px #0004;overflow:hidden
+}
+.panel-head{
+ padding:17px 19px;display:flex;align-items:center;
+ justify-content:space-between;gap:10px;border-bottom:1px solid var(--line)
+}
+.panel-head h2{margin:0;font-size:16px}
+.panel-head h2 span{color:#c084fc;margin-right:8px}
+.panel-head select{
+ background:#21123e;color:white;border:1px solid var(--line);
+ border-radius:9px;padding:8px;font-size:11px
+}
+
+/* CHART */
+.chart-area{padding:17px 17px 10px}
+.chart-area svg{width:100%;height:auto;display:block;overflow:visible}
+.chart-label{fill:#d5c8e8;font-size:11px;font-family:Inter,Arial}
+.chart-grid{stroke:#ffffff18;stroke-width:1}
+.chart-line1{fill:none;stroke:#bd4cff;stroke-width:3}
+.chart-line2{fill:none;stroke:#ffbd32;stroke-width:3}
+.chart-dot1{fill:#bd4cff;stroke:white;stroke-width:1.5}
+.chart-dot2{fill:#ffbd32;stroke:white;stroke-width:1.5}
+.legend{display:flex;justify-content:flex-end;gap:20px;padding:0 15px 15px;font-size:11px}
+.legend span:before{
+ content:"";display:inline-block;width:9px;height:9px;
+ border-radius:50%;margin-right:7px
+}
+.legend .l1:before{background:#bd4cff}
+.legend .l2:before{background:#ffbd32}
+
+/* QUICK ACTIONS */
+.quick-grid{
+ padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px
+}
+.quick-grid button{
+ min-height:65px;display:flex;align-items:center;gap:10px;
+ padding:12px;border:1px solid #a855f74d;border-radius:13px;
+ color:white;background:linear-gradient(120deg,#35145d,#1b1038);
+ text-align:left;font-size:11px;font-weight:700;transition:.2s
+}
+.quick-grid button:hover{border-color:#d8a7ff;transform:translateY(-2px)}
+.quick-grid .qicon{font-size:22px;color:#e3b4ff}
+
+/* TABLES */
+.bottom-row{
+ display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:20px
+}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:430px}
+th,td{
+ padding:13px 15px;border-bottom:1px solid #ffffff12;
+ text-align:left;font-size:11px;white-space:nowrap
+}
+th{color:#bba9d3;font-weight:600;background:#ffffff05}
+td{color:#eee5fa}
+tbody tr:hover{background:#ffffff08}
+.pill{
+ display:inline-block;padding:5px 10px;border-radius:30px;
+ font-size:10px;font-weight:700
+}
+.pill.new{background:#10d99a25;color:#5af0b8}
+.pill.progress{background:#287aff35;color:#8fc1ff}
+.view-all{font-size:11px;color:#cf9cff;font-weight:700}
+
+/* DYNAMIC PAGE CONTENT */
+#pageContent{min-height:200px}
+#pageContent .section{
+ margin-top:20px;padding:20px;border:1px solid var(--line);
+ border-radius:16px;background:linear-gradient(145deg,#1b1034,#100a21)
+}
+#pageContent h2{font-size:16px}
+#pageContent table{width:100%}
+#pageContent input,#pageContent select,#pageContent textarea{
+ background:#0b0718;color:white;border:1px solid var(--line);
+ border-radius:9px;padding:12px
+}
+#pageContent button{
+ border-radius:9px
+}
+.notice{
+ margin:20px 0;padding:13px 16px;border-radius:11px;
+ border:1px solid #d977063b;background:#d9770610;
+ color:#f5d99d;font-size:11px;line-height:1.7
+}
+.empty{padding:18px;color:var(--muted);font-size:12px}
+
+/* RESPONSIVE */
+@media(max-width:1150px){
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .row{grid-template-columns:1fr}
+ .bottom-row{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+ .app{grid-template-columns:1fr}
+ .sidebar{position:relative;height:auto;padding:12px}
+ .logo{
+  display:flex;align-items:center;gap:12px;
+  text-align:left;padding:3px 6px 12px
+ }
+ .logo-mark{width:46px;height:43px;margin:0;font-size:24px;border-radius:12px}
+ .logo .brand{font-size:15px}
+ .logo small{font-size:9px;margin-top:4px}
+ .nav{
+  display:flex;overflow-x:auto;gap:6px;margin-top:12px;padding-bottom:4px
+ }
+ .nav button{width:auto;min-width:max-content;padding:10px;font-size:11px}
+ .nav-icon{font-size:15px;width:auto}
+ .sidebar-bottom{display:none}
+ .topbar{height:68px;padding:0 13px}
+ .menu-toggle{display:block}
+ .top-left{gap:10px}
+ .search{max-width:220px}
+ .search input{font-size:11px;padding:10px 10px 10px 35px}
+ .search span{top:7px;left:11px}
+ .top-right{gap:12px}
+ .profile{font-size:11px}
+ .avatar{width:34px;height:34px}
+ .content{padding:16px}
+ .welcome{min-height:130px}
+ .welcome h1{font-size:25px}
+ .welcome p{font-size:12px;max-width:300px;line-height:1.6}
+ .stat{padding:13px;gap:10px}
+ .stat-icon{width:43px;height:43px;border-radius:13px;font-size:21px}
+ .stat-info span{font-size:10px}
+ .stat-info strong{font-size:20px}
+ .stat-info small{font-size:9px}
+ .grid{gap:10px}
+ .panel-head{padding:14px}
+ .panel-head h2{font-size:13px}
+}
+@media(max-width:390px){
+ .profile-name{display:none}
+ .grid{grid-template-columns:1fr 1fr}
+ .stat{display:block}
+ .stat-icon{margin-bottom:10px}
+ .quick-grid{padding:10px;gap:8px}
+ .quick-grid button{padding:9px;font-size:10px}
+ .content{padding:12px}
+}
 </style>
 </head>
+
 <body>
+
+<!-- LOGIN SCREEN -->
 <div id="loginView" class="wrap">
-  <div class="card">
-    <div class="brand">VR TECH SOLUTIONS</div>
-    <div class="sub">ADMIN PORTAL · Secure sign in</div>
-    <form id="loginForm">
-      <label for="email">Admin Email</label><input id="email" type="email" autocomplete="username" required placeholder="you@company.com">
-      <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required placeholder="Enter password">
-      <button class="btn" type="submit">Sign In</button>
-    </form>
-    <button class="btn secondary" id="forgotBtn" type="button">Forgot Password</button>
-        <div id="loginMessage" class="message"></div>
-  </div>
-</div>
-
-<!-- Password Reset Section -->
-<!-- Password Reset Section -->
-<div id="resetView" class="hidden">
-  <h2 style="margin-top:20px;">Reset Your Password</h2>
-
-  <form id="resetForm">
-    <label for="newPassword">New Password</label>
-    <input
-      id="newPassword"
-      type="password"
-      minlength="8"
-      autocomplete="new-password"
-      required
-      placeholder="Enter new password"
-    >
-
-    <label for="confirmPassword">Confirm New Password</label>
-    <input
-      id="confirmPassword"
-      type="password"
-      minlength="8"
-      autocomplete="new-password"
-      required
-      placeholder="Confirm new password"
-    >
-
-    <button class="btn" type="submit">Update Password</button>
+ <div class="card">
+  <div class="brand">VR <span>TECH SOLUTIONS</span></div>
+  <div class="sub">BUSINESS CONTROL CENTER · ADMIN LOGIN</div>
+  <form id="loginForm">
+   <label for="email">Admin Email</label>
+   <input id="email" type="email" autocomplete="username" required placeholder="you@company.com">
+   <label for="password">Password</label>
+   <input id="password" type="password" autocomplete="current-password" required placeholder="Enter password">
+   <button class="btn full" type="submit">Sign In →</button>
   </form>
-
-  <div id="resetMessage" class="message" role="status"></div>
-
-  <button
-    id="backToLoginBtn"
-    class="btn secondary"
-    type="button"
-  >
-    Back to Login
-  </button>
+  <button class="btn secondary full" id="forgotBtn" type="button">Forgot Password</button>
+  <div id="loginMessage" class="message"></div>
+ </div>
 </div>
+
+<!-- PASSWORD RESET -->
+<div id="resetView" class="hidden">
+ <h2>Reset Your Password</h2>
+ <form id="resetForm">
+  <label for="newPassword">New Password</label>
+  <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Enter new password">
+  <label for="confirmPassword">Confirm New Password</label>
+  <input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Confirm new password">
+  <button class="btn full" type="submit">Update Password</button>
+ </form>
+ <div id="resetMessage" class="message" role="status"></div>
+ <button id="backToLoginBtn" class="btn secondary full" type="button">Back to Login</button>
+</div>
+
+<!-- ADMIN APP -->
 <div id="appView" class="app hidden">
-  <aside class="sidebar">
-    <div class="logo"><div class="brand">VR TECH SOLUTIONS</div><small>BUSINESS CONTROL CENTER</small></div>
-    <nav class="nav" id="nav">
-      <button class="active" data-page="dashboard">▦ Dashboard</button>
-      <button data-page="customers">♙ Customers</button>
-      <button data-page="enquiries">✉ Enquiries</button>
-      <button data-page="projects">▣ Projects</button>
-      <button data-page="finance">₹ Finance</button>
-      <button data-page="staff">♧ Staff & Salary</button>
-      <button data-page="invoices">▤ Invoices</button>
-      <button data-page="reports">▥ Reports</button>
-    </nav>
-  </aside>
-  <main class="main">
-    <div class="top"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your business at a glance</p></div><div class="top-actions"><button class="smallbtn" id="refreshBtn">Refresh</button><button class="smallbtn" id="logoutBtn">Sign out</button></div></div>
-    <div id="pageContent"></div>
-    <div class="notice">Security note: This starter interface is not ready for live customer data until Supabase URL/key, admin-only authorization, and Row Level Security policies are configured and tested.</div>
-  </main>
+
+ <aside class="sidebar">
+  <div class="logo">
+   <div class="logo-mark">VR</div>
+   <div>
+    <div class="brand">VR <span>TECH SOLUTIONS</span></div>
+    <small>BUSINESS CONTROL CENTER</small>
+   </div>
+  </div>
+
+  <nav class="nav" id="nav">
+   <button class="active" data-page="dashboard"><span class="nav-icon">⌂</span> Dashboard</button>
+   <button data-page="customers"><span class="nav-icon">♙</span> Customers</button>
+   <button data-page="enquiries"><span class="nav-icon">✉</span> Enquiries</button>
+   <button data-page="projects"><span class="nav-icon">▣</span> Projects</button>
+   <button data-page="finance"><span class="nav-icon">₹</span> Finance</button>
+   <button data-page="staff"><span class="nav-icon">♧</span> Staff & Salary</button>
+   <button data-page="invoices"><span class="nav-icon">▤</span> Invoices</button>
+   <button data-page="reports"><span class="nav-icon">▥</span> Reports</button>
+  </nav>
+
+  <div class="sidebar-bottom">
+   <div class="rocket">🚀</div>
+   <strong>Grow Your Business</strong>
+   <p>with Smart Technology</p>
+   <button type="button" data-page="reports">Get Support →</button>
+  </div>
+ </aside>
+
+ <main class="main">
+
+  <header class="topbar">
+   <div class="top-left">
+    <button class="menu-toggle" type="button" aria-label="Menu">☰</button>
+    <div class="search">
+     <span>⌕</span>
+     <input id="dashboardSearch" type="search" placeholder="Search here...">
+    </div>
+   </div>
+   <div class="top-right">
+    <button class="notification" type="button" aria-label="Notifications">♧<b>3</b></button>
+    <div class="profile">
+     <div class="avatar">A</div>
+     <span class="profile-name">Admin</span>
+     <span>⌄</span>
+    </div>
+   </div>
+  </header>
+
+  <div class="content">
+
+   <section class="welcome">
+    <div>
+     <h1>Welcome, Admin!</h1>
+     <p>Here's what's happening with your business today.</p>
+     <span class="welcome-tag">VR TECH SOLUTIONS · BUSINESS OVERVIEW</span>
+    </div>
+   </section>
+
+   <!-- DEMO STATISTICS: replace with live database values -->
+   <div class="grid">
+    <div class="stat purple">
+     <div class="stat-icon">♟</div>
+     <div class="stat-info">
+      <span>Total Customers</span>
+      <strong>1,250</strong>
+      <small>↑ Business overview</small>
+     </div>
+    </div>
+    <div class="stat blue">
+     <div class="stat-icon">✉</div>
+     <div class="stat-info">
+      <span>Total Enquiries</span>
+      <strong>842</strong>
+      <small>↑ Enquiry overview</small>
+     </div>
+    </div>
+    <div class="stat gold">
+     <div class="stat-icon">▣</div>
+     <div class="stat-info">
+      <span>Total Projects</span>
+      <strong>298</strong>
+      <small>↑ Project overview</small>
+     </div>
+    </div>
+    <div class="stat green">
+     <div class="stat-icon">₹</div>
+     <div class="stat-info">
+      <span>Total Revenue</span>
+      <strong>₹2,50,000</strong>
+      <small>↑ Finance overview</small>
+     </div>
+    </div>
+   </div>
+
+   <div class="row">
+
+    <!-- BUSINESS CHART -->
+    <section class="panel">
+     <div class="panel-head">
+      <h2><span>▥</span> Business Overview</h2>
+      <select id="chartPeriod" aria-label="Chart period">
+       <option>Last 6 Months</option>
+       <option>Last 12 Months</option>
+      </select>
+     </div>
+     <div class="chart-area">
+      <svg viewBox="0 0 700 190" role="img" aria-label="Illustrative enquiries and projects chart">
+       <defs>
+        <linearGradient id="purpleFill" x1="0" x2="0" y1="0" y2="1">
+         <stop offset="0" stop-color="#bd4cff" stop-opacity=".25"/>
+         <stop offset="1" stop-color="#bd4cff" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="goldFill" x1="0" x2="0" y1="0" y2="1">
+         <stop offset="0" stop-color="#ffbd32" stop-opacity=".18"/>
+         <stop offset="1" stop-color="#ffbd32" stop-opacity="0"/>
+        </linearGradient>
+       </defs>
+       <g class="chart-grid">
+        <path d="M45 20H680 M45 55H680 M45 90H680 M45 125H680 M45 160H680"/>
+        <path d="M45 20V160 M172 20V160 M299 20V160 M426 20V160 M553 20V160 M680 20V160"/>
+       </g>
+       <g class="chart-label">
+        <text x="5" y="24">1000</text>
+        <text x="10" y="59">750</text>
+        <text x="10" y="94">500</text>
+        <text x="10" y="129">250</text>
+        <text x="25" y="164">0</text>
+        <text x="40" y="181">Jan</text>
+        <text x="166" y="181">Feb</text>
+        <text x="293" y="181">Mar</text>
+        <text x="420" y="181">Apr</text>
+        <text x="547" y="181">May</text>
+        <text x="665" y="181">Jun</text>
+       </g>
+       <path d="M45 118 Q110 100 172 89 T299 82 T426 68 T553 70 T680 42 L680 160 L45 160Z" fill="url(#purpleFill)"/>
+       <path d="M45 139 Q110 126 172 109 T299 85 T426 91 T553 84 T680 73 L680 160 L45 160Z" fill="url(#goldFill)"/>
+       <path class="chart-line1" d="M45 118 Q110 100 172 89 T299 82 T426 68 T553 70 T680 42"/>
+       <path class="chart-line2" d="M45 139 Q110 126 172 109 T299 85 T426 91 T553 84 T680 73"/>
+       <g>
+        <circle class="chart-dot1" cx="45" cy="118" r="4"/><circle class="chart-dot1" cx="172" cy="89" r="4"/>
+        <circle class="chart-dot1" cx="299" cy="82" r="4"/><circle class="chart-dot1" cx="426" cy="68" r="4"/>
+        <circle class="chart-dot1" cx="553" cy="70" r="4"/><circle class="chart-dot1" cx="680" cy="42" r="4"/>
+        <circle class="chart-dot2" cx="45" cy="139" r="4"/><circle class="chart-dot2" cx="172" cy="109" r="4"/>
+        <circle class="chart-dot2" cx="299" cy="85" r="4"/><circle class="chart-dot2" cx="426" cy="91" r="4"/>
+        <circle class="chart-dot2" cx="553" cy="84" r="4"/><circle class="chart-dot2" cx="680" cy="73" r="4"/>
+       </g>
+      </svg>
+     </div>
+     <div class="legend">
+      <span class="l1">Enquiries</span>
+      <span class="l2">Projects</span>
+     </div>
+    </section>
+
+    <!-- QUICK ACTIONS -->
+    <section class="panel">
+     <div class="panel-head">
+      <h2><span style="color:#ffcf37">ϟ</span> Quick Actions</h2>
+     </div>
+     <div class="quick-grid">
+      <button type="button" data-page="customers"><span class="qicon">♟</span> Add Customer ›</button>
+      <button type="button" data-page="enquiries"><span class="qicon">✉</span> New Enquiry ›</button>
+      <button type="button" data-page="projects"><span class="qicon">▣</span> Create Project ›</button>
+      <button type="button" data-page="invoices"><span class="qicon">▤</span> Generate Invoice ›</button>
+     </div>
+    </section>
+
+   </div>
+
+   <!-- RECENT TABLES -->
+   <div class="bottom-row">
+
+    <section class="panel">
+     <div class="panel-head">
+      <h2><span>✉</span> Recent Enquiries</h2>
+      <a class="view-all" href="#enquiries" data-page="enquiries">View All →</a>
+     </div>
+     <div class="table-wrap">
+      <table>
+       <thead>
+        <tr><th>Name</th><th>Service</th><th>Date</th><th>Status</th></tr>
+       </thead>
+       <tbody>
+        <tr>
+         <td>Sample Customer</td>
+         <td>Website Development</td>
+         <td>Today</td>
+         <td><span class="pill new">New</span></td>
+        </tr>
+       </tbody>
+      </table>
+     </div>
+    </section>
+
+    <section class="panel">
+     <div class="panel-head">
+      <h2><span>📁</span> Latest Projects</h2>
+      <a class="view-all" href="#projects" data-page="projects">View All →</a>
+     </div>
+     <div class="table-wrap">
+      <table>
+       <thead>
+        <tr><th>Project</th><th>Client</th><th>Status</th></tr>
+       </thead>
+       <tbody>
+        <tr>
+         <td>Sample Website</td>
+         <td>Sample Client</td>
+         <td><span class="pill progress">In Progress</span></td>
+        </tr>
+       </tbody>
+      </table>
+     </div>
+    </section>
+
+   </div>
+
+   <!-- EXISTING APP.JS USES THIS CONTAINER FOR OTHER PAGES -->
+   <div id="pageContent" class="hidden"></div>
+
+   <div class="notice">
+    <strong>Security reminder:</strong>
+    Use Supabase authentication, admin-only authorization and
+    Row Level Security policies before handling live business data.
+   </div>
+
+  </div>
+ </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
-</body></html>
+
+<script>
+/* Visual navigation helper for the dashboard shortcuts.
+   The existing app.js remains responsible for page rendering. */
+document.addEventListener("click",function(event){
+ const target=event.target.closest("[data-page]");
+ if(!target)return;
+
+ const page=target.dataset.page;
+ const navButton=document.querySelector(
+  '#nav button[data-page="'+page+'"]'
+ );
+
+ if(navButton){
+  navButton.click();
+ }
+});
+
+document.querySelector(".menu-toggle")?.addEventListener("click",function(){
+ document.querySelector(".sidebar")?.scrollIntoView({behavior:"smooth"});
+});
+</script>
+
+</body>
+</html>
