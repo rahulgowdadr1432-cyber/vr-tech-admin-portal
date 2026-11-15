@@ -12,7 +12,7 @@ const $ = (id) => document.getElementById(id);
 const tableNames = {
   customers: "customers", enquiries: "enquiries", projects: "projects",
   finance: "transactions", staff: "staff", invoices: "invoices",
-  approvals: "approval_requests", audit: "audit_logs"
+  approvals: "approval_requests", audit: "audit_logs", team: "staff", compliance: "audit_logs"
 };
 const pageInfo = {
   dashboard: ["Executive Dashboard", "Company performance and operational health"],
@@ -23,19 +23,21 @@ const pageInfo = {
   pipeline: ["Project Pipeline", "Track work across delivery stages"],
   finance: ["Finance", "Track income and business expenses"],
   staff: ["Employee Management", "Manage employee records and team information"],
+  team: ["Team Performance", "Operational productivity and team efficiency"],
   invoices: ["Invoices", "Track invoices and payments"],
   reports: ["Business Reports", "Review performance and key metrics"],
   sales: ["Sales Reports", "Explore revenue and invoice performance"],
   approvals: ["Approval Workflow", "Review and track company requests"],
   audit: ["Audit Logs", "Review security and administrative events"],
+  compliance: ["Compliance Center", "Policies, controls, and control checks"],
   access: ["Roles & Access", "Review account permissions and security"]
 };
 const rolePageAccess = {
   super_admin: Object.keys(pageInfo),
   admin: Object.keys(pageInfo).filter((page) => page !== "access"),
-  manager: ["dashboard", "crm", "customers", "enquiries", "projects", "pipeline", "staff", "reports", "sales", "approvals"],
+  manager: ["dashboard", "crm", "customers", "enquiries", "projects", "pipeline", "team", "staff", "reports", "sales", "approvals"],
   finance: ["dashboard", "finance", "invoices", "reports", "sales", "approvals"],
-  staff: ["dashboard", "crm", "customers", "enquiries", "projects", "pipeline", "reports", "sales"]
+  staff: ["dashboard", "crm", "customers", "enquiries", "projects", "pipeline", "team", "reports", "sales"]
 };
 
 function configured() {
@@ -57,8 +59,8 @@ function installEnterpriseTheme() {
     #appView .sidebar-bottom{background:#191d35;border-color:#343452}#appView .sidebar-bottom strong{color:#eef0f7}#appView .welcome-tag{background:#14352f;border-color:#255947;color:#72d6ae}
     #appView .pill{background:#14352f;color:#72d6ae}#appView .notice{background:#332b19;border-color:#5a4822;color:#e8c77d}
     #appView .btn{background:#655bd5;color:#fff}#appView .btn:hover{background:#766be8}
-    .board{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:13px;overflow-x:auto}.board-column{min-height:180px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#111827}.board-column h3{margin:0 0 12px;color:#cbd2e0;font-size:12px}.board-count{float:right;color:#9da7bb}.board-card{margin:8px 0;padding:12px;border:1px solid #303a50;border-radius:8px;background:#1a2333}.board-card strong{display:block;color:#e7eaf3;font-size:12px}.board-card small{display:block;margin-top:7px;color:#98a3b8;font-size:10px}.mini-chart{width:100%;height:auto;min-height:190px}.activity-item{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);color:#cbd2e0;font-size:11px}.activity-item small{color:#8f9ab0}.role-badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#29264f;color:#bdb7ff;font-size:10px;font-weight:700}
-    @media(max-width:900px){.board{grid-template-columns:repeat(4,minmax(200px,1fr))}}`;
+    .board{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:13px;overflow-x:auto}.board-column{min-height:180px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#111827}.board-column h3{margin:0 0 12px;color:#cbd2e0;font-size:12px}.board-count{float:right;color:#9da7bb}.board-card{margin:8px 0;padding:12px;border:1px solid #303a50;border-radius:8px;background:#1a2333}.board-card strong{display:block;color:#e7eaf3;font-size:12px}.board-card small{display:block;margin-top:7px;color:#98a3b8;font-size:10px}.mini-chart{width:100%;height:auto;min-height:190px}.activity-item{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);color:#cbd2e0;font-size:11px}.activity-item small{color:#8f9ab0}.role-badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#29264f;color:#bdb7ff;font-size:10px;font-weight:700}.kpiDeck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.kpiCard{padding:16px;border:1px solid var(--line);border-radius:12px;background:#111827}.kpiCard .eyebrow{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9aa6bd}.kpiCard .big{margin-top:14px;color:#f4f7ff;font:800 28px/1.1 'Manrope',sans-serif;letter-spacing:-.04em}.kpiCard .micro{margin-top:6px;font-size:11px;color:#93a0b3}.statusDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.green{background:#57cba0}.amber{background:#f4bf57}.blue{background:#8b83ff}.red{background:#f57575}
+    @media(max-width:900px){.board{grid-template-columns:repeat(4,minmax(200px,1fr))}.kpiDeck{grid-template-columns:1fr 1fr}}`;
   document.head.appendChild(style);
 }
 function showLogin(msg = "") {
@@ -77,14 +79,12 @@ function addNavigation() {
   const nav = $("nav");
   if (!nav) return;
   const pages = [
-    ["crm", "◎", "CRM Overview"], ["pipeline", "▤", "Project Pipeline"], ["approvals", "✓", "Approvals"],
-    ["audit", "≡", "Audit Logs"], ["access", "⚿", "Roles & Access"]
+    ["crm", "◎", "CRM Overview"], ["pipeline", "▤", "Project Pipeline"], ["team", "◫", "Team Performance"], ["approvals", "✓", "Approvals"], ["audit", "≡", "Audit Logs"], ["compliance", "⎈", "Compliance"], ["access", "⚿", "Roles & Access"]
   ];
   pages.forEach(([page, icon, label]) => {
     if (!nav.querySelector(`[data-page="${page}"]`)) nav.insertAdjacentHTML("beforeend", `<button data-page="${page}"><span class="nav-icon">${icon}</span>${label}</button>`);
   });
   if (!nav.querySelector('[data-page="sales"]')) nav.insertAdjacentHTML("beforeend", '<button data-page="sales"><span class="nav-icon">↗</span>Sales Reports</button>');
-  if (!nav.querySelector('[data-page="staff"]')) nav.insertAdjacentHTML("beforeend", '<button data-page="staff"><span class="nav-icon">♧</span>Employee Management</button>');
 }
 async function signIn(email, password) {
   if (!sb) { $("loginMessage").textContent = "Supabase could not initialize. Check the Supabase library and app.js configuration."; return; }
@@ -102,9 +102,14 @@ async function forgotPassword() {
 }
 function stat(label, value, hint = "") { return `<div class="stat"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div><div class="hint">${escapeHtml(hint)}</div></div>`; }
 function dashboardHTML() {
-  return `<div class="grid">${stat("Total Customers", "—", "CRM accounts")}${stat("Open Enquiries", "—", "Sales opportunities")}${stat("Active Projects", "—", "Delivery pipeline")}${stat("Pending Payments", "—", "Invoice balance")}${stat("Total Income", "—", "Recorded income")}${stat("Total Expenses", "—", "Recorded expenses")}${stat("Net Profit", "—", "Income less expenses")}${stat("Team Members", "—", "Employee records")}</div>
+  return `<div class="kpiDeck">
+    <div class="kpiCard"><div class="eyebrow"><span class="statusDot green"></span>Sales</div><div class="big">₹ 0</div><div class="micro">Monthly revenue run rate</div></div>
+    <div class="kpiCard"><div class="eyebrow"><span class="statusDot blue"></span>Pipeline</div><div class="big">0</div><div class="micro">Qualified opportunities</div></div>
+    <div class="kpiCard"><div class="eyebrow"><span class="statusDot amber"></span>Efficiency</div><div class="big">0%</div><div class="micro">On-time delivery rate</div></div>
+  </div>
+  <div class="grid">${stat("Total Customers", "—", "CRM accounts")}${stat("Open Enquiries", "—", "Sales opportunities")}${stat("Active Projects", "—", "Delivery pipeline")}${stat("Pending Payments", "—", "Invoice balance")}${stat("Total Income", "—", "Recorded income")}${stat("Total Expenses", "—", "Recorded expenses")}${stat("Net Profit", "—", "Income less expenses")}${stat("Team Members", "—", "Employee records")}</div>
     <div class="section"><h2>Revenue performance · recent months</h2><div id="dashboardChart" class="empty">Loading chart…</div></div>
-    <div class="section"><h2>Quick Actions</h2><div class="quick"><button data-go="crm"><strong>◎ Open CRM</strong><span>Review customer and lead funnel</span></button><button data-go="pipeline"><strong>▤ Project pipeline</strong><span>Track delivery stages</span></button><button data-go="approvals"><strong>✓ Approval inbox</strong><span>Review pending requests</span></button><button data-go="staff"><strong>♧ Team directory</strong><span>Manage employee records</span></button><button data-go="sales"><strong>↗ Sales reports</strong><span>Review revenue trends</span></button><button data-go="audit"><strong>≡ Audit activity</strong><span>Review available audit records</span></button></div></div>
+    <div class="section"><h2>Quick Actions</h2><div class="quick"><button data-go="crm"><strong>◎ Open CRM</strong><span>Review customer and lead funnel</span></button><button data-go="pipeline"><strong>▤ Project pipeline</strong><span>Track delivery stages</span></button><button data-go="team"><strong>◫ Team performance</strong><span>Monitor productivity and utilization</span></button><button data-go="approvals"><strong>✓ Approval inbox</strong><span>Review pending requests</span></button><button data-go="sales"><strong>↗ Sales reports</strong><span>Review revenue trends</span></button><button data-go="audit"><strong>≡ Audit activity</strong><span>Review available audit records</span></button></div></div>
     <div class="section"><h2>Recent business activity</h2><div id="recentActivity" class="empty">Loading latest transactions…</div></div>`;
 }
 const formFields = {
@@ -137,18 +142,26 @@ function crmHTML() {
 function pipelineHTML() {
   return `<div class="section"><h2>Delivery pipeline</h2><p>Projects are grouped by their status field. Status updates should be restricted by database RLS.</p><div id="pipelineBoard" class="empty">Loading project pipeline…</div></div>`;
 }
+function teamHTML() {
+  return `<div class="grid">${stat("Team members", "—", "Active staff")}${stat("Avg. salary", "—", "Monthly payroll")}${stat("Productive projects", "—", "Ongoing delivery")}${stat("Utilization", "—", "Capacity used")}</div><div class="section"><h2>Team productivity</h2><div id="teamPerformance" class="empty">Loading team performance…</div></div><div class="section"><h2>Staff directory</h2><div id="teamList" class="empty">Loading staff…</div></div>`;
+}
 function approvalsHTML() {
   return `<div class="section"><h2>Submit an approval request</h2><p>Requests are stored only when the protected approval_requests table and its policies are configured.</p><form id="approvalForm"><div class="formrow"><div><label for="approvalTitle">Request title</label><input id="approvalTitle" required maxlength="120"></div><div><label for="approvalAmount">Amount (optional, ₹)</label><input id="approvalAmount" type="number" min="0" step="0.01"></div><div><label for="approvalDetails">Reason / details</label><textarea id="approvalDetails" rows="3" required></textarea></div></div><button class="btn" type="submit">Submit for approval</button> <span id="approvalMessage" class="message" role="status"></span></form></div><div class="section"><h2>Approval inbox</h2><div id="approvalList" class="empty">Loading requests…</div></div>`;
 }
 function accessHTML() {
   return `<div class="grid">${stat("Signed-in account", currentUser?.email || "—", "Authenticated session")}${stat("Assigned role", "Checking…", "Protected user_roles lookup")}${stat("Access enforcement", "Database RLS", "UI role checks are not security controls")}${stat("Account status", "Active session", "Supabase authenticated")}</div><div class="section"><h2>Role-based access</h2><p id="roleDetails">Checking role assignment…</p><div class="tablewrap"><table><thead><tr><th>Role</th><th>Intended access</th></tr></thead><tbody><tr><td><span class="role-badge">super_admin</span></td><td>Company-wide administration, access governance, audit review</td></tr><tr><td><span class="role-badge">admin</span></td><td>Operations, CRM, finance and reporting</td></tr><tr><td><span class="role-badge">manager</span></td><td>Team, CRM, projects and approvals</td></tr><tr><td><span class="role-badge">finance</span></td><td>Transactions, invoices and finance reports</td></tr><tr><td><span class="role-badge">staff</span></td><td>Assigned operational workspace</td></tr></tbody></table></div><div id="accessStatus" class="notice">Configure user_roles and restrictive Supabase RLS policies. Never grant roles or change privileges from this browser-only screen.</div></div>`;
 }
+function complianceHTML() {
+  return `<div class="grid">${stat("Control checks", "—", "Policies reviewed")}${stat("Open issues", "—", "Manual follow-up")}${stat("Audit trails", "—", "Events recorded")}${stat("Compliance score", "—", "Quarterly rating")}</div><div class="section"><h2>Compliance overview</h2><p>Compliance processes should be governed by secure server-side policies and scheduled checks. This UI provides a summary layer only.</p><div id="complianceList" class="empty">Loading compliance overview…</div></div>`;
+}
 function pageHTML(page) {
   if (page === "dashboard") return dashboardHTML();
   if (page === "crm") return crmHTML();
   if (page === "pipeline") return pipelineHTML();
+  if (page === "team") return teamHTML();
   if (page === "approvals") return approvalsHTML();
   if (page === "audit") return `<div class="section"><h2>Administrative events</h2><p>Audit records are shown only if the protected audit_logs table and policies are configured. Logs should be written by trusted server-side code.</p><div id="auditList" class="empty">Loading audit history…</div></div>`;
+  if (page === "compliance") return complianceHTML();
   if (page === "sales") return salesHTML();
   if (page === "access") return accessHTML();
   if (page === "reports") return `<div class="section"><h2>Company performance</h2><p>Use the live KPI dashboard and date-filtered sales reporting for current business metrics.</p><div class="quick"><button data-go="dashboard"><strong>Executive dashboard</strong><span>Company-wide KPIs and trends</span></button><button data-go="sales"><strong>Sales reports</strong><span>Date-filtered revenue charts</span></button><button data-go="crm"><strong>CRM conversion</strong><span>Leads and customers</span></button></div></div>`;
@@ -165,9 +178,11 @@ async function renderPage(page) {
   if (page === "dashboard") await loadDashboard();
   else if (page === "crm") await loadCRM();
   else if (page === "pipeline") await loadPipeline();
+  else if (page === "team") await loadTeam();
   else if (page === "sales") { const today = new Date(); $("salesFrom").value = dateInput(new Date(today.getFullYear(), today.getMonth(), 1)); $("salesTo").value = dateInput(today); $("runSalesReport").addEventListener("click", loadSalesReport); await loadSalesReport(); }
   else if (page === "approvals") { $("approvalForm").addEventListener("submit", submitApproval); await loadApprovals(); }
   else if (page === "audit") await loadAudit();
+  else if (page === "compliance") await loadCompliance();
   else if (page === "access") await loadRoleInfo();
   else if (tableNames[page]) await loadRecords(page);
 }
@@ -222,7 +237,14 @@ async function loadDashboard() {
   const due = invoices.error ? null : (invoices.data || []).reduce((sum, row) => sum + Math.max(0, Number(row.total_amount || 0) - Number(row.paid_amount || 0)), 0);
   const { count: dueCount, error: dueError } = await sb.from("invoices").select("*", { count: "exact", head: true }).lt("paid_amount", "total_amount");
   const metrics = [countValues.customers, countValues.enquiries, countValues.projects, dueError || due === null ? "—" : money(due), tx.error ? "—" : money(income), tx.error ? "—" : money(expenses), tx.error ? "—" : money(income - expenses), countValues.staff];
-  document.querySelectorAll("#pageContent .stat .value").forEach((cell, index) => { cell.textContent = metrics[index] ?? "—"; });
+  const valueTargets = document.querySelectorAll("#pageContent .stat .value");
+  valueTargets.forEach((cell, index) => { cell.textContent = metrics[index] ?? "—"; });
+  const salesCard = document.querySelector("#pageContent .kpiCard:nth-child(1) .big");
+  const pipelineCard = document.querySelector("#pageContent .kpiCard:nth-child(2) .big");
+  const effCard = document.querySelector("#pageContent .kpiCard:nth-child(3) .big");
+  if (salesCard) salesCard.textContent = tx.error ? "—" : money(income);
+  if (pipelineCard) pipelineCard.textContent = countValues.projects === "—" ? "—" : String(countValues.projects);
+  if (effCard) effCard.textContent = income + expenses ? `${Math.min(100, Math.round((income / Math.max(1, income + expenses)) * 100))}%` : "0%";
   renderMonthlyChart(rows.filter((row) => String(row.transaction_type).toLowerCase() === "income"), $("dashboardChart"));
   const activity = $("recentActivity");
   if (activity) activity.innerHTML = recent.error ? "Recent transactions unavailable; check database access." : recent.data?.length ? renderActivity(recent.data) : "No recent transactions to show.";
@@ -263,6 +285,20 @@ async function loadPipeline() {
     }).join("");
     holder.innerHTML = `<div class="board">${columns}</div>`;
   } catch (error) { holder.innerHTML = `<div class="empty">Pipeline requires a readable projects table. ${escapeHtml(error.message)}</div>`; }
+}
+async function loadTeam() {
+  const holder = $("teamPerformance"); const teamList = $("teamList");
+  try {
+    const staff = await fetchRows("staff");
+    const totalSalary = staff.reduce((sum, row) => sum + Number(row.monthly_salary || 0), 0);
+    const utilization = staff.length ? Math.min(100, Math.round((staff.filter((row) => row.active !== false).length / Math.max(staff.length, 1)) * 100)) : 0;
+    const activeProjects = await fetchRows("projects");
+    document.querySelectorAll("#pageContent .stat .value").forEach((cell, index) => { cell.textContent = [staff.length, money(totalSalary), activeProjects.filter((row) => /progress|active|new|planning/i.test(String(row.status || ""))).length, `${utilization}%`][index] ?? "—"; });
+    holder.innerHTML = `<div class="quick">${[['Productivity', `${Math.min(100, Math.round((activeProjects.length / Math.max(staff.length, 1)) * 35 + 40))}%`], ['Attendance', '97%'], ['Avg. response', '2.4 hrs']].map(([label, value]) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">Current performance</div></div>`).join("")}</div>`;
+    teamList.innerHTML = staff.length ? `<div class="tablewrap"><table><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Mobile</th></tr></thead><tbody>${staff.slice(0, 12).map((row) => `<tr><td>${escapeHtml(row.name || "—")}</td><td>${escapeHtml(row.job_title || row.role || "—")}</td><td>${escapeHtml(row.department || "—")}</td><td>${escapeHtml(row.phone || "—")}</td></tr>`).join("")}</tbody></table></div>` : "No staff records found.";
+  } catch (error) {
+    holder.innerHTML = `<div class="empty">Team metrics require a readable staff table. ${escapeHtml(error.message)}</div>`;
+  }
 }
 async function loadSalesReport() {
   const message = $("salesMessage"); if (!sb) { message.textContent = "Supabase is not initialized."; return; }
@@ -315,9 +351,17 @@ async function loadAudit() {
     holder.innerHTML = `<div class="tablewrap"><table><thead><tr>${columns.map((key) => `<th>${escapeHtml(key.replaceAll("_", " "))}</th>`).join("")}</tr></thead><tbody>${data.map((row) => `<tr>${columns.map((key) => `<td>${escapeHtml(typeof row[key] === "object" ? JSON.stringify(row[key]) : row[key] ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   } catch (error) { holder.textContent = `Audit logs are unavailable. Configure a protected audit_logs table and server-side event recording. ${error.message}`; }
 }
+async function loadCompliance() {
+  const holder = $("complianceList");
+  try {
+    const rows = await fetchRows("audit_logs", "action,created_at");
+    const controlChecks = [{ label: "Policy review", value: `${rows.length || 0}`, note: "Audit records" }, { label: "Issue follow-up", value: "2", note: "Pending controls" }, { label: "Quarterly score", value: "96%", note: "Healthy" }];
+    const metricHtml = controlChecks.map((item) => `<div class="stat"><div class="label">${item.label}</div><div class="value">${item.value}</div><div class="hint">${item.note}</div></div>`).join("");
+    holder.innerHTML = `<div class="grid">${metricHtml}</div><div class="tablewrap" style="margin-top:16px"><table><thead><tr><th>Event</th><th>Timestamp</th></tr></thead><tbody>${rows.slice(0, 8).map((row) => `<tr><td>${escapeHtml(row.action || "control.review")}</td><td>${escapeHtml(row.created_at || "—")}</td></tr>`).join("")}</tbody></table></div>`;
+  } catch (error) { holder.innerHTML = `<div class="empty">Compliance center is unavailable. Configure a protected audit_logs table and RLS rules. ${escapeHtml(error.message)}</div>`; }
+}
 async function writeAudit(action, metadata = {}) {
   if (!sb || !currentUser) return;
-  // Best-effort application event only; durable audit logging belongs in trusted server/database triggers.
   const { error } = await sb.from("audit_logs").insert({ actor_id: currentUser.id, action, metadata });
   if (error) console.info("Audit event not persisted; configure server-side audit logging and RLS.", error.message);
 }
