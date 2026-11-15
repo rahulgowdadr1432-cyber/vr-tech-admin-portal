@@ -1,417 +1,58 @@
-/*
- * VR Tech Solutions enterprise admin portal.
- * This browser client uses only the Supabase publishable key. Supabase RLS and
- * trusted server-side workflows must enforce authorization and privileged actions.
- */
-const SUPABASE_URL = "https://rficwjxubmexlkplmpdv.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_XJJALDjMrAEUq_Qol9LiCA_UX79aNgj";
-let sb = null;
-let currentUser = null;
-let currentRole = "staff";
-const $ = (id) => document.getElementById(id);
-const tableNames = {
-  customers: "customers", enquiries: "enquiries", projects: "projects",
-  finance: "transactions", staff: "staff", invoices: "invoices",
-  approvals: "approval_requests", audit: "audit_logs", team: "staff", compliance: "audit_logs"
-};
-const pageInfo = {
-  dashboard: ["Executive Dashboard", "Company performance and operational health"],
-  crm: ["CRM Overview", "Customer relationships, leads, and conversion funnel"],
-  customers: ["Customers", "Manage customer records and account details"],
-  enquiries: ["Enquiries", "Track leads and follow-ups"],
-  projects: ["Projects", "Manage projects and delivery"],
-  pipeline: ["Project Pipeline", "Track work across delivery stages"],
-  finance: ["Finance", "Track income and business expenses"],
-  staff: ["Employee Management", "Manage employee records and team information"],
-  team: ["Team Performance", "Operational productivity and team efficiency"],
-  invoices: ["Invoices", "Track invoices and payments"],
-  reports: ["Business Reports", "Review performance and key metrics"],
-  sales: ["Sales Reports", "Explore revenue and invoice performance"],
-  approvals: ["Approval Workflow", "Review and track company requests"],
-  audit: ["Audit Logs", "Review security and administrative events"],
-  compliance: ["Compliance Center", "Policies, controls, and control checks"],
-  access: ["Roles & Access", "Review account permissions and security"]
-};
-const rolePageAccess = {
-  super_admin: Object.keys(pageInfo),
-  admin: Object.keys(pageInfo).filter((page) => page !== "access"),
-  manager: ["dashboard", "crm", "customers", "enquiries", "projects", "pipeline", "team", "staff", "reports", "sales", "approvals"],
-  finance: ["dashboard", "finance", "invoices", "reports", "sales", "approvals"],
-  staff: ["dashboard", "crm", "customers", "enquiries", "projects", "pipeline", "team", "reports", "sales"]
-};
+/* VR Tech Solutions enterprise portal. Supabase RLS/server-side workflows are the security boundary. */
+const SUPABASE_URL="https://rficwjxubmexlkplmpdv.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_XJJALDjMrAEUq_Qol9LiCA_UX79aNgj";
+let sb=null,currentUser=null,currentRole="staff";
+const $=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=v=>"₹"+Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2});
+const tables={customers:"customers",enquiries:"enquiries",projects:"projects",finance:"transactions",staff:"staff",invoices:"invoices",tickets:"support_tickets",approvals:"approval_requests",audit:"audit_logs"};
+const info={dashboard:["Executive Dashboard","Company performance and operational health"],crm:["CRM Overview","Customer relationships, leads, and conversion funnel"],customers:["Customers","Manage customer accounts"],enquiries:["Enquiries","Track leads and follow-ups"],projects:["Projects","Manage projects and delivery"],pipeline:["Project Pipeline","Track delivery stages"],finance:["Finance","Track company income and expenses"],staff:["Employee Management","Manage employee records"],invoices:["Invoices","Track payments and balances"],sales:["Sales Reports","Revenue and invoice performance"],reports:["Business Reports","Export company performance reports"],approvals:["Approval Workflow","Submit and review company requests"],audit:["Audit Logs","Review administrative events"],access:["Roles & Access","Review account permissions"],tickets:["Support Center","Customer service tickets and priorities"],team:["Team Performance","Team operational overview"],compliance:["Compliance Center","Review policy and control records"]};
+const rolePages={super_admin:Object.keys(info),admin:Object.keys(info).filter(p=>p!=="access"),manager:["dashboard","crm","customers","enquiries","projects","pipeline","staff","team","reports","sales","approvals","tickets"],finance:["dashboard","finance","invoices","reports","sales","approvals"],staff:["dashboard","crm","customers","enquiries","projects","pipeline","reports","sales","tickets"]};
+function installStyle(){const s=document.createElement("style");s.textContent=`.board{display:grid;grid-template-columns:repeat(4,minmax(205px,1fr));gap:12px;overflow:auto}.board-column{min-height:180px;padding:12px;background:#111827;border:1px solid #293248;border-radius:10px}.board-column h3{margin:0 0 10px;color:#cbd2e0;font-size:12px}.board-count{float:right;color:#929bb0}.board-card{margin:8px 0;padding:12px;border:1px solid #303a50;border-radius:9px;background:#1a2333;cursor:grab}.board-card strong,.board-card small{display:block}.board-card strong{color:#e7eaf3;font-size:11px}.board-card small{margin-top:6px;color:#98a3b8;font-size:9px}.board-column.drag-over{border-color:#8b83ff;background:#1b1b38}.chart-svg{width:100%;height:auto;min-height:190px}.chart-line{stroke-dasharray:1200;stroke-dashoffset:1200;animation:drawLine 1.4s ease forwards}.chart-point{animation:popIn .35s ease both}.chart-bar{transform-box:fill-box;transform-origin:bottom;animation:growBar .65s ease both}.notice-list{display:grid;gap:8px}.notice-row{padding:11px;border:1px solid #303a50;border-radius:8px;background:#182132;color:#cbd2e0;font-size:11px}.notice-row strong{color:#f3c86a}.metric-row{display:flex;flex-wrap:wrap;gap:10px}.metric-row .stat{flex:1 1 160px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.toolbar input,.toolbar select{min-height:37px;padding:8px 10px;border:1px solid #303a50;border-radius:7px;background:#101827;color:#e7eaf3}.btn.tiny{min-height:30px;padding:0 9px;margin:2px;font-size:9px}.ticket-priority{color:#f4bf57}.theme-light #appView{filter:brightness(1.25) saturate(.72)}.theme-light #appView .stat,.theme-light #appView .section{background:#263146}.theme-light #appView .sidebar,.theme-light #appView .topbar{background:#1b2638}.notification-panel{position:fixed;z-index:30;right:24px;top:68px;width:min(360px,calc(100vw - 30px));max-height:70vh;overflow:auto;padding:16px;border:1px solid #354057;border-radius:12px;background:#151c2b;box-shadow:0 18px 50px #0008}.notification-panel h3{margin:0 0 12px;color:#f2f4fa}.notification-panel .empty{padding:8px}.support-meta{color:#929bb0;font-size:10px}@keyframes drawLine{to{stroke-dashoffset:0}}@keyframes popIn{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}@keyframes growBar{from{transform:scaleY(0)}to{transform:scaleY(1)}}@media(max-width:760px){.board{grid-template-columns:repeat(4,minmax(190px,1fr))}}`;document.head.appendChild(s)}
+function stat(label,value="—",hint=""){return `<div class="stat"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div><div class="hint">${esc(hint)}</div></div>`}
+function addNav(){const nav=$("nav");[["crm","◎","CRM Overview"],["pipeline","▤","Project Pipeline"],["team","◫","Team Performance"],["tickets","✉","Support Center"],["approvals","✓","Approval Workflow"],["audit","≡","Audit Logs"],["compliance","⎈","Compliance Center"],["access","⚿","Roles & Access"],["sales","↗","Sales Reports"]].forEach(([p,i,l])=>{if(nav&&!nav.querySelector(`[data-page="${p}"]`))nav.insertAdjacentHTML("beforeend",`<button data-page="${p}"><span class="nav-icon">${i}</span>${l}</button>`)})}
+function showLogin(message=""){ $("loginView").classList.remove("hidden");$("appView").classList.add("hidden");$("resetView").classList.add("hidden");if(message)$("loginMessage").textContent=message }
+function showApp(){ $("loginView").classList.add("hidden");$("resetView").classList.add("hidden");$("appView").classList.remove("hidden");renderPage("dashboard") }
+async function signOut(){if(sb)await sb.auth.signOut();currentUser=null;currentRole="staff";showLogin("You have signed out.")}
+async function signIn(email,password){if(!sb){$("loginMessage").textContent="Supabase did not initialize.";return}const {error}=await sb.auth.signInWithPassword({email,password});if(error){$("loginMessage").textContent=error.message;return}showApp()}
+async function forgotPassword(){const email=$("email").value.trim();if(!email){$("loginMessage").textContent="Enter your email first.";return}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:"https://admin.vrtechsolutions24.in"});$("loginMessage").textContent=error?error.message:"Password reset email sent."}
+function dashboardHTML(){return `<div class="grid">${stat("Total Customers")}${stat("Open Enquiries")}${stat("Active Projects")}${stat("Pending Payments")}${stat("Total Income")}${stat("Total Expenses")}${stat("Net Profit")}${stat("Team Members")}</div><div class="section"><h2>Revenue performance · recent months</h2><div id="dashboardChart" class="empty">Loading real transaction data…</div></div><div class="section"><h2>Quick Actions</h2><div class="quick"><button data-go="crm"><strong>◎ CRM overview</strong><span>Review customer and lead funnel</span></button><button data-go="pipeline"><strong>▤ Project pipeline</strong><span>Track delivery stages</span></button><button data-go="tickets"><strong>✉ Support center</strong><span>Manage customer issues</span></button><button data-go="approvals"><strong>✓ Approval inbox</strong><span>Review company requests</span></button><button data-go="sales"><strong>↗ Sales reports</strong><span>Download data and charts</span></button><button data-go="audit"><strong>≡ Audit activity</strong><span>Review protected audit events</span></button></div></div><div class="section"><h2>Recent transactions</h2><div id="recentActivity" class="empty">Loading…</div></div><div class="section"><h2>Action center</h2><div id="dashboardAlerts" class="notice-list">Loading alerts…</div></div>`}
+function simpleForm(page){const fields={customers:[["Customer name","name"],["Phone","phone"],["Email","email"],["Address","address"]],enquiries:[["Customer name","customer_name"],["Phone","phone"],["Email","email"],["Service","service"],["Details","details","textarea"]],projects:[["Project name","project_name"],["Customer ID","customer_id","number"],["Price ₹","price","number"],["Start date","start_date","date"],["Deadline","deadline","date"]],finance:[["Transaction type","transaction_type","select",["Income","Expense"]],["Category","category"],["Amount ₹","amount","number"],["Description","description"],["Date","transaction_date","date"]],staff:[["Employee name","name"],["Phone","phone"],["Monthly salary ₹","monthly_salary","number"],["Email","email","email"],["Job title","job_title"],["Department","department"]],invoices:[["Invoice number","invoice_number"],["Customer ID","customer_id","number"],["Total amount ₹","total_amount","number"],["Paid amount ₹","paid_amount","number"],["Invoice date","invoice_date","date"],["Due date","due_date","date"]]};const input=f=>{const [label,name,type="text",opts=[]]=f;let c=type==="textarea"?`<textarea name="${name}" rows="3"></textarea>`:type==="select"?`<select name="${name}">${opts.map(o=>`<option>${o}</option>`).join("")}</select>`:`<input name="${name}" type="${type}" ${type==="number"?'min="0" step="0.01"':''}>`;return `<div><label>${esc(label)}</label>${c}</div>`};return `<div class="section"><h2>Add ${esc(info[page][0])}</h2><form id="recordForm"><div class="formrow">${(fields[page]||[]).map(input).join("")}</div><button class="btn" type="submit">Save record</button> <span id="formMessage" class="message" role="status"></span></form></div><div class="section"><div class="toolbar"><h2 style="margin:0 auto 0 0">${esc(info[page][0])} list</h2><button class="btn" data-export="tableData">Export CSV</button></div><div id="tableData" class="tablewrap"><div class="empty">Loading…</div></div></div>`}
+function salesHTML(){return `<div class="section"><h2>Reporting period</h2><div class="formrow"><div><label>From</label><input id="salesFrom" type="date"></div><div><label>To</label><input id="salesTo" type="date"></div></div><button id="runSalesReport" class="btn">Apply range</button> <button class="btn" data-export="salesTable">Export CSV</button><p id="salesMessage" class="message" role="status"></p></div><div id="salesMetrics" class="grid">${stat("Sales revenue")}${stat("Expenses")}${stat("Net sales")}${stat("Invoice balance")}</div><div class="section"><h2>Monthly revenue</h2><div id="salesChart" class="empty">Loading…</div></div><div class="section"><h2>Income transactions</h2><div id="salesTable" class="tablewrap empty">Loading…</div></div>`}
+function crmHTML(){return `<div class="grid">${stat("Customers")}${stat("Leads")}${stat("Income")}${stat("Lead conversion")}</div><div class="section"><h2>Lead conversion funnel</h2><div id="crmFunnel" class="empty">Loading…</div></div><div class="section"><h2>Recent leads</h2><div id="crmLeads" class="empty">Loading…</div></div>`}
+function pipelineHTML(){return `<div class="section"><div class="toolbar"><h2 style="margin:0 auto 0 0">Delivery board</h2><span class="support-meta">Drag a project card to update its stage</span></div><div id="pipelineBoard" class="empty">Loading…</div></div>`}
+function ticketHTML(){return `<div class="section"><h2>Create a support ticket</h2><form id="ticketForm"><div class="formrow"><div><label>Customer name</label><input name="customer_name" required></div><div><label>Subject</label><input name="subject" required maxlength="140"></div><div><label>Priority</label><select name="priority"><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></div><div><label>Details</label><textarea name="description" rows="3" required></textarea></div></div><button class="btn">Create ticket</button> <span id="ticketMessage" class="message" role="status"></span></form></div><div class="section"><div class="toolbar"><h2 style="margin:0 auto 0 0">Support queue</h2><button class="btn" data-export="ticketList">Export CSV</button></div><div id="ticketList" class="tablewrap empty">Loading…</div></div>`}
+function pageHTML(p){if(p==="dashboard")return dashboardHTML();if(p==="sales")return salesHTML();if(p==="crm")return crmHTML();if(p==="pipeline")return pipelineHTML();if(p==="tickets")return ticketHTML();if(p==="team")return `<div class="grid">${stat("Employees")}${stat("Monthly payroll")}${stat("Active projects")}${stat("Active staff rate")}</div><div class="section"><h2>Team directory</h2><div id="teamList" class="empty">Loading…</div></div>`;if(p==="approvals")return `<div class="section"><h2>Submit a request</h2><form id="approvalForm"><div class="formrow"><div><label>Request title</label><input id="approvalTitle" required maxlength="120"></div><div><label>Amount ₹ (optional)</label><input id="approvalAmount" type="number" min="0" step="0.01"></div><div><label>Reason</label><textarea id="approvalDetails" rows="3" required></textarea></div></div><button class="btn">Submit for approval</button> <span id="approvalMessage" class="message" role="status"></span></form></div><div class="section"><h2>Approval inbox</h2><div id="approvalList" class="empty">Loading…</div></div>`;if(p==="audit")return `<div class="section"><div class="toolbar"><h2 style="margin:0 auto 0 0">Audit history</h2><button class="btn" data-export="auditList">Export CSV</button></div><div id="auditList" class="empty">Loading…</div></div>`;if(p==="compliance")return `<div class="section"><h2>Compliance status</h2><p>Live evidence is sourced from audit records. Configure formal company controls and review cadence before treating this as a compliance certification.</p><div id="complianceList" class="empty">Loading…</div></div>`;if(p==="access")return `<div class="section"><h2>Role and access overview</h2><p id="roleDetails">Checking role assignment…</p><div id="accessStatus" class="notice">Supabase RLS—not navigation visibility—must enforce every permission.</div></div>`;if(p==="reports")return `<div class="section"><div class="toolbar"><h2 style="margin:0 auto 0 0">Business reports</h2><button class="btn" data-export="dashboardReport">Download KPI CSV</button><button class="btn" data-go="sales">Open sales report</button></div><p>Export uses currently displayed data. Revenue charts are derived from transactions, not sample values.</p><div id="dashboardReport" class="empty">Refresh the executive dashboard to calculate current KPIs.</div></div>`;if(tables[p])return simpleForm(p);return ""}
+function accessible(p){return(rolePages[currentRole]||rolePages.staff).includes(p)}
+async function renderPage(p){if(!info[p])p="dashboard";if(!accessible(p))p="dashboard";document.querySelectorAll("#nav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p));$("pageTitle").textContent=info[p][0];$("pageSubtitle").textContent=info[p][1];$("pageContent").innerHTML=pageHTML(p);document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>renderPage(b.dataset.go));document.querySelectorAll("[data-export]").forEach(b=>b.onclick=()=>exportCSV(b.dataset.export));const form=$("recordForm");if(form)form.onsubmit=e=>saveRecord(e,p);if(p==="dashboard")await loadDashboard();else if(p==="crm")await loadCRM();else if(p==="pipeline")await loadPipeline();else if(p==="sales"){const d=new Date();$("salesFrom").value=dateInput(new Date(d.getFullYear(),d.getMonth(),1));$("salesTo").value=dateInput(d);$("runSalesReport").onclick=loadSalesReport;await loadSalesReport()}else if(p==="tickets"){$("ticketForm").onsubmit=submitTicket;await loadTickets()}else if(p==="approvals"){$("approvalForm").onsubmit=submitApproval;await loadApprovals()}else if(p==="audit")await loadAudit();else if(p==="compliance")await loadCompliance();else if(p==="access")await loadRoleInfo();else if(p==="team")await loadTeam();else if(tables[p])await loadRecords(p)}
+function dateInput(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+async function rows(table,select="*"){const {data,error}=await sb.from(table).select(select).limit(1000);if(error)throw error;return data||[]}
+function sumType(list,type){return list.filter(r=>String(r.transaction_type).toLowerCase()===type).reduce((s,r)=>s+Number(r.amount||0),0)}
+function tableHTML(list,keys){if(!list.length)return'<div class="empty">No records found.</div>';const cols=keys||Object.keys(list[0]).slice(0,8);return`<table><thead><tr>${cols.map(k=>`<th>${esc(k.replaceAll("_"," "))}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${cols.map(k=>`<td>${esc(typeof r[k]==="object"?JSON.stringify(r[k]):r[k]??"—")}</td>`).join("")}</tr>`).join("")}</tbody></table>`}
+async function loadRecords(p){const h=$("tableData");try{const {data,error}=await sb.from(tables[p]).select("*").order("created_at",{ascending:false}).limit(100);if(error)throw error;h.innerHTML=tableHTML(data||[],p==="enquiries"?["customer_name","phone","email","service","status","created_at"]:undefined)}catch(e){h.innerHTML=`<div class="empty">${esc(e.message)}. Confirm table schema and RLS.</div>`}}
+async function saveRecord(e,p){e.preventDefault();const m=$("formMessage"),o=Object.fromEntries(new FormData(e.currentTarget));Object.keys(o).forEach(k=>{if(o[k]==="")delete o[k]});["customer_id","price","amount","monthly_salary","total_amount","paid_amount"].forEach(k=>{if(o[k])o[k]=Number(o[k])});if(p==="enquiries"&&!o.status)o.status="New";if(p==="projects"&&!o.status)o.status="Planning";if(p==="staff")o.active=true;const {error}=await sb.from(tables[p]).insert(o);if(error){m.textContent=error.message;return}m.textContent="Saved.";e.currentTarget.reset();await loadRecords(p);await audit("record.created",{table:tables[p]})}
+async function loadDashboard(){const countTables=["customers","enquiries","projects","staff"];const cs=await Promise.all(countTables.map(t=>sb.from(t).select("*",{count:"exact",head:true})));const [tx,inv,recent]=await Promise.all([sb.from("transactions").select("transaction_type,amount,transaction_date,description,created_at").limit(2000),sb.from("invoices").select("total_amount,paid_amount").limit(1000),sb.from("transactions").select("transaction_type,amount,transaction_date,description,created_at").order("created_at",{ascending:false}).limit(6)]);const list=tx.error?[]:tx.data||[],income=sumType(list,"income"),expense=sumType(list,"expense"),due=inv.error?null:(inv.data||[]).reduce((s,r)=>s+Math.max(0,Number(r.total_amount||0)-Number(r.paid_amount||0)),0);const vals=[cs[0].error?"—":cs[0].count,cs[1].error?"—":cs[1].count,cs[2].error?"—":cs[2].count,due===null?"—":money(due),tx.error?"—":money(income),tx.error?"—":money(expense),tx.error?"—":money(income-expense),cs[3].error?"—":cs[3].count];document.querySelectorAll("#pageContent .stat .value").forEach((el,i)=>el.textContent=vals[i]??"—");renderChart(list.filter(r=>String(r.transaction_type).toLowerCase()==="income"),$("dashboardChart"));$("recentActivity").innerHTML=recent.error?`<div class="empty">${esc(recent.error.message)}</div>`:tableHTML(recent.data||[],["transaction_type","description","transaction_date","amount"]);const alerts=[];if(!inv.error){const unpaid=(inv.data||[]).filter(r=>Number(r.total_amount||0)>Number(r.paid_amount||0)).length;if(unpaid)alerts.push(`<div class="notice-row"><strong>${unpaid} unpaid invoice(s)</strong> · check collections.</div>`)}try{const ar=await rows("approval_requests","status");const pending=ar.filter(a=>/pending/i.test(a.status||"")).length;if(pending)alerts.push(`<div class="notice-row"><strong>${pending} approval(s) need review.</strong></div>`)}catch{}$("dashboardAlerts").innerHTML=alerts.join("")||'<div class="notice-row">No outstanding alerts found from available data.</div>';const report=$("dashboardReport");if(report)report.innerHTML=`<div data-csv="dashboardReport">Customers,${vals[0]}\nEnquiries,${vals[1]}\nProjects,${vals[2]}\nIncome,${tx.error?"Unavailable":income}\nExpenses,${tx.error?"Unavailable":expense}\nNet profit,${tx.error?"Unavailable":income-expense}</div>`}
+function renderChart(list,holder){if(!holder)return;const m=new Map();list.forEach(r=>{const d=String(r.transaction_date||r.created_at||"");if(d.length>=7)m.set(d.slice(0,7),(m.get(d.slice(0,7))||0)+Number(r.amount||0))});const data=[...m.entries()].sort(([a],[b])=>a.localeCompare(b)).slice(-8);if(!data.length){holder.innerHTML='<div class="empty">No dated income data available. Add transactions to see the chart.</div>';return}const max=Math.max(...data.map(x=>x[1]),1),x=i=>40+i*(620/Math.max(data.length-1,1)),y=v=>145-v/max*110,pts=data.map((d,i)=>`${x(i)},${y(d[1])}`).join(" "),area=`M ${x(0)},160 L ${data.map((d,i)=>`${x(i)},${y(d[1])}`).join(" L ")} L ${x(data.length-1)},160 Z`;holder.innerHTML=`<svg class="chart-svg" viewBox="0 0 700 195" role="img" aria-label="Revenue by month"><defs><linearGradient id="fillRev" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8b83ff" stop-opacity=".36"/><stop offset="1" stop-color="#8b83ff" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#fillRev)"/><polyline class="chart-line" points="${pts}" fill="none" stroke="#9b93ff" stroke-width="3" stroke-linecap="round"/>${data.map((d,i)=>`<circle class="chart-point" style="animation-delay:${i*60}ms" cx="${x(i)}" cy="${y(d[1])}" r="4" fill="#d1ceff"><title>${esc(d[0])}: ${money(d[1])}</title></circle><text x="${x(i)}" y="181" text-anchor="middle" fill="#929bb0" font-size="10">${esc(d[0].slice(2))}</text>`).join("")}</svg>`}
+async function loadCRM(){try{const [c,l,p,t]=await Promise.all([rows("customers"),rows("enquiries"),rows("projects"),rows("transactions","transaction_type,amount")]);const won=p.filter(x=>/complete|won|delivered/i.test(x.status||"")).length;document.querySelectorAll("#pageContent .stat .value").forEach((e,i)=>e.textContent=[c.length,l.length,money(sumType(t,"income")),l.length?`${Math.round(won/l.length*100)}%`:"—"][i]);$("crmFunnel").innerHTML=`<div class="grid">${stat("New leads",l.filter(x=>/new|open|pending/i.test(x.status||"new")).length)}${stat("In progress",l.filter(x=>/contact|qualif|progress/i.test(x.status||"")).length)}${stat("Projects won",won)}</div>`;$("crmLeads").innerHTML=tableHTML(l.slice(0,20),["customer_name","service","status","created_at"])}catch(e){$("crmFunnel").textContent=`CRM data unavailable: ${e.message}`}}
+async function loadPipeline(){const holder=$("pipelineBoard"),stages=["Planning","In Progress","Review","Completed"];try{const projects=await rows("projects");holder.innerHTML=`<div class="board">${stages.map(stage=>{const list=projects.filter(p=>stageMatch(p.status,stage));return`<section class="board-column" data-stage="${stage}"><h3>${stage}<span class="board-count">${list.length}</span></h3>${list.map(p=>`<article class="board-card" draggable="true" data-id="${esc(p.id)}"><strong>${esc(p.project_name||p.name||"Project")}</strong><small>${esc(p.status||stage)} · ${p.deadline?`Due ${esc(p.deadline)}`:"No deadline"}</small><small>${p.price?`Value ${money(p.price)}`:"Value not set"}</small></article>`).join("")||'<div class="empty">No projects</div>'}</section>`}).join("")}</div>`;wireBoard()}catch(e){holder.textContent=`Project pipeline unavailable: ${e.message}`}}
+function stageMatch(status,stage){const s=String(status||"Planning").toLowerCase();return stage==="Planning"?/new|planning|pending|backlog/.test(s):stage==="In Progress"?/progress|active|started/.test(s):stage==="Review"?/review|hold|approval/.test(s):/complete|done|delivered|closed/.test(s)}
+function wireBoard(){let dragged=null;document.querySelectorAll(".board-card").forEach(card=>{card.ondragstart=()=>{dragged=card;card.style.opacity=".45"};card.ondragend=()=>{card.style.opacity="1"}});document.querySelectorAll(".board-column").forEach(col=>{col.ondragover=e=>{e.preventDefault();col.classList.add("drag-over")};col.ondragleave=()=>col.classList.remove("drag-over");col.ondrop=async e=>{e.preventDefault();col.classList.remove("drag-over");if(!dragged)return;const id=dragged.dataset.id,stage=col.dataset.stage;if(!id||id==="undefined"){alert("This project has no ID; status was not changed.");return}const {error}=await sb.from("projects").update({status:stage}).eq("id",id);if(error){alert(`Update denied: ${error.message}`);return}await audit("project.stage_changed",{id,stage});await loadPipeline()}})}
+async function loadTeam(){try{const [s,p]=await Promise.all([rows("staff"),rows("projects")]);const pay=s.reduce((a,x)=>a+Number(x.monthly_salary||0),0),active=s.filter(x=>x.active!==false).length;document.querySelectorAll("#pageContent .stat .value").forEach((e,i)=>e.textContent=[s.length,money(pay),p.filter(x=>/progress|active|planning/i.test(x.status||"")).length,s.length?`${Math.round(active/s.length*100)}%`:"—"][i]);$("teamList").innerHTML=tableHTML(s,["name","job_title","department","phone","active"])}catch(e){$("teamList").textContent=`Team table unavailable: ${e.message}`}}
+async function loadSalesReport(){const msg=$("salesMessage"),from=$("salesFrom").value,to=$("salesTo").value;if(from&&to&&from>to){msg.textContent="Start date must be before end date.";return}msg.textContent="Loading…";const [tx,inv]=await Promise.all([sb.from("transactions").select("transaction_type,amount,transaction_date,description,created_at").limit(2000),sb.from("invoices").select("total_amount,paid_amount,invoice_date,created_at").limit(2000)]);if(tx.error){msg.textContent=tx.error.message;return}const inRange=(r,k)=>{const d=String(r[k]||r.created_at||"").slice(0,10);return(!from||d>=from)&&(!to||d<=to)},all=(tx.data||[]).filter(r=>inRange(r,"transaction_date")),inc=all.filter(r=>String(r.transaction_type).toLowerCase()==="income"),exp=sumType(all,"expense"),rev=sumType(inc,"income"),invs=(inv.data||[]).filter(r=>inRange(r,"invoice_date")),balance=invs.reduce((s,r)=>s+Math.max(0,Number(r.total_amount||0)-Number(r.paid_amount||0)),0);document.querySelectorAll("#salesMetrics .stat .value").forEach((e,i)=>e.textContent=[money(rev),money(exp),money(rev-exp),inv.error?"—":money(balance)][i]);renderChart(inc,$("salesChart"));$("salesTable").innerHTML=tableHTML(inc,["transaction_date","description","amount"]);msg.textContent=`${inc.length} income records${inv.error?" · invoice data unavailable":""}`}
+async function submitTicket(e){e.preventDefault();const o=Object.fromEntries(new FormData(e.currentTarget));o.status="Open";o.created_by=currentUser?.id;const {error}=await sb.from("support_tickets").insert(o);if(error){$("ticketMessage").textContent=`Ticket table/RLS required: ${error.message}`;return}$("ticketMessage").textContent="Ticket created.";e.currentTarget.reset();await audit("support_ticket.created",{subject:o.subject});await loadTickets()}
+async function loadTickets(){try{const data=await rows("support_tickets");$("ticketList").innerHTML=tableHTML(data,["customer_name","subject","priority","status","created_at"])}catch(e){$("ticketList").textContent=`Configure support_tickets with RLS: ${e.message}`}}
+async function submitApproval(e){e.preventDefault();const o={title:$("approvalTitle").value.trim(),details:$("approvalDetails").value.trim(),amount:$("approvalAmount").value?Number($("approvalAmount").value):null,status:"pending",requested_by:currentUser?.id};const {error}=await sb.from("approval_requests").insert(o);if(error){$("approvalMessage").textContent=error.message;return}$("approvalMessage").textContent="Submitted for approval.";e.currentTarget.reset();await audit("approval.submitted",{title:o.title});await loadApprovals()}
+async function loadApprovals(){try{const data=await rows("approval_requests");const h=$("approvalList");h.innerHTML=data.length?`<table><thead><tr><th>Request</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${data.map(r=>`<tr><td>${esc(r.title||r.details||"Request")}</td><td>${r.amount==null?"—":money(r.amount)}</td><td>${esc(r.status||"pending")}</td><td>${/pending/i.test(r.status||"")&&["admin","super_admin","manager"].includes(currentRole)?`<button class="btn tiny" data-approval="approved" data-id="${esc(r.id)}">Approve</button><button class="btn tiny" data-approval="rejected" data-id="${esc(r.id)}">Reject</button>`:"—"}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">No requests.</div>';h.querySelectorAll("[data-approval]").forEach(b=>b.onclick=()=>decideApproval(b.dataset.id,b.dataset.approval))}catch(e){$("approvalList").textContent=`Configure approval_requests and RLS: ${e.message}`}}
+async function decideApproval(id,status){if(!confirm(`${status} this request?`))return;const {error}=await sb.from("approval_requests").update({status,reviewed_by:currentUser?.id}).eq("id",id);if(error){alert(`Action denied: ${error.message}`);return}await audit("approval.reviewed",{id,status});await loadApprovals()}
+async function loadAudit(){try{const d=await rows("audit_logs");$("auditList").innerHTML=tableHTML(d.slice(0,200))}catch(e){$("auditList").textContent=`Audit log unavailable: ${e.message}`}}
+async function loadCompliance(){try{const d=await rows("audit_logs","action,created_at");$("complianceList").innerHTML=`${stat("Available audit events",d.length,"From audit_logs table")}${tableHTML(d.slice(0,20),["action","created_at"])}`}catch(e){$("complianceList").textContent=`Compliance evidence unavailable: ${e.message}`}}
+async function audit(action,metadata={}){if(!sb||!currentUser)return;const {error}=await sb.from("audit_logs").insert({actor_id:currentUser.id,action,metadata});if(error)console.info("Audit insert unavailable; configure a protected server-side audit trail.",error.message)}
+async function loadRoleInfo(){const p=$("roleDetails");try{const {data,error}=await sb.from("user_roles").select("role").eq("user_id",currentUser.id).maybeSingle();if(error)throw error;currentRole=Object.hasOwn(rolePages,String(data?.role||"staff").toLowerCase())?String(data?.role||"staff").toLowerCase():"staff";p.textContent=`Signed in: ${currentUser.email||"account"}. Role: ${currentRole}. Navigation restrictions are convenience only; RLS must enforce data permissions.`;$("accessStatus").textContent="Never grant roles in this browser. Use trusted server-side role administration and Supabase RLS.";document.querySelectorAll("#nav [data-page]").forEach(b=>b.hidden=!accessible(b.dataset.page))}catch(e){currentRole="staff";p.textContent=`Role lookup unavailable; defaulting to staff UI: ${e.message}`;document.querySelectorAll("#nav [data-page]").forEach(b=>b.hidden=!accessible(b.dataset.page))}}
+function exportCSV(id){const el=$(id);if(!el){alert("No report data available yet.");return}let rowsOut=[];const table=el.querySelector("table");if(table)rowsOut=[...table.querySelectorAll("tr")].map(tr=>[...tr.querySelectorAll("th,td")].map(td=>td.innerText));else{const csv=el.querySelector("[data-csv]")?.textContent;if(csv)rowsOut=csv.split("\n").map(line=>line.split(","));else{alert("No tabular data available to export.");return}}const csv=rowsOut.map(row=>row.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download=`vr-tech-${id}-${dateInput(new Date())}.csv`;a.click();URL.revokeObjectURL(a.href)}
+function setupNotifications(){const b=document.querySelector(".notification");if(!b)return;b.title="Open notifications";b.onclick=async()=>{let panel=$("notificationPanel");if(panel){panel.remove();return}panel=document.createElement("aside");panel.id="notificationPanel";panel.className="notification-panel";panel.innerHTML="<h3>Notifications</h3><div class='empty'>Loading current alerts…</div>";document.body.appendChild(panel);const notes=[];try{const inv=await rows("invoices","total_amount,paid_amount,due_date");const overdue=inv.filter(x=>x.due_date&&x.due_date<dateInput(new Date())&&Number(x.total_amount)>Number(x.paid_amount));if(overdue.length)notes.push(`<div class="notice-row"><strong>${overdue.length} overdue invoice(s)</strong><br>Review outstanding balances.</div>`)}catch{}try{const ar=await rows("approval_requests","title,status");const pending=ar.filter(x=>/pending/i.test(x.status||""));if(pending.length)notes.push(`<div class="notice-row"><strong>${pending.length} pending approvals</strong><br>${pending.slice(0,3).map(x=>esc(x.title)).join(" · ")}</div>`)}catch{}panel.innerHTML=`<h3>Notifications</h3>${notes.join("")||'<div class="empty">No alerts in available data.</div>'}`}}
+function setupTheme(){const top=document.querySelector(".top-right");if(!top||$("themeToggle"))return;const b=document.createElement("button");b.id="themeToggle";b.type="button";b.className="icon-button";b.title="Toggle display theme";b.setAttribute("aria-label","Toggle theme");b.textContent="◐";top.insertBefore(b,top.querySelector(".profile"));if(localStorage.getItem("vr-theme")==="light")document.body.classList.add("theme-light");b.onclick=()=>{document.body.classList.toggle("theme-light");localStorage.setItem("vr-theme",document.body.classList.contains("theme-light")?"light":"dark")}}
+function bind(){ $("loginForm").addEventListener("submit",e=>{e.preventDefault();signIn($("email").value.trim(),$("password").value)});$("forgotBtn").addEventListener("click",forgotPassword);$("logoutBtn").addEventListener("click",signOut);$("refreshBtn").addEventListener("click",()=>renderPage(document.querySelector("#nav .active")?.dataset.page||"dashboard"));$("nav").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b&&!b.hidden)renderPage(b.dataset.page)});$("resetForm")?.addEventListener("submit",async e=>{e.preventDefault();if($("newPassword").value!==$("confirmPassword").value){$("resetMessage").textContent="Passwords do not match.";return}const {error}=await sb.auth.updateUser({password:$("newPassword").value});$("resetMessage").textContent=error?error.message:"Password updated.";if(!error)setTimeout(showApp,900)});$("backToLoginBtn")?.addEventListener("click",()=>{history.replaceState({},document.title,location.pathname);showLogin()});document.querySelector(".search input")?.addEventListener("input",e=>document.querySelectorAll("#pageContent tbody tr").forEach(r=>r.hidden=!r.textContent.toLowerCase().includes(e.target.value.toLowerCase())));document.querySelector(".menu-toggle")?.addEventListener("click",()=>$("nav").classList.toggle("nav-open"))}
 
-function configured() {
-  return SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.startsWith("sb_publishable_");
-}
-function initClient() {
-  if (configured() && window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
-function installEnterpriseTheme() {
-  const style = document.createElement("style");
-  style.textContent = `
-    #appView{--ink:#e7eaf3;--muted:#929bb0;--line:#293248;--surface:#151c2b;--canvas:#0c1220;--brand:#8b83ff;--brand-dark:#756bf0;--brand-soft:#252443;--green:#57cba0;--green-soft:#14352f;color:var(--ink);background:var(--canvas)}
-    #appView .sidebar,#appView .topbar{background:#111827;border-color:var(--line)}#appView .logo h2,#appView .page-heading h1,#appView .section h2,#appView .stat .value{color:#eef0f7}
-    #appView .logo small,#appView .nav-label{color:#78849a}#appView #nav button{color:#aab3c5}#appView #nav button:hover{background:#1b2435;color:#fff}#appView #nav button.active{background:#29264f;color:#b9b3ff}
-    #appView .content{color:var(--ink)}#appView .page-heading p,#appView .section p,#appView .stat .label,#appView .stat .hint{color:var(--muted)}#appView .stat,#appView .section{background:#151c2b;border-color:var(--line);box-shadow:0 10px 24px #02061730}
-    #appView .quick button,#appView .logout,#appView .icon-button{background:#182132;border-color:#303a50;color:#dce1ed}#appView .quick button:hover{background:#202a3f;border-color:#6861bf}#appView .quick button span{color:#9ba5ba}
-    #appView .search input,#appView .formrow input,#appView .formrow select,#appView .formrow textarea{background:#101827;border-color:#303a50;color:#e7eaf3}#appView .formrow label{color:#b4bdce}
-    #appView th{background:#192233;color:#aab3c5}#appView td{color:#d9deea;border-color:#283247}#appView tbody tr:hover{background:#1b2638}#appView .empty{color:#a1abc0}
-    #appView .sidebar-bottom{background:#191d35;border-color:#343452}#appView .sidebar-bottom strong{color:#eef0f7}#appView .welcome-tag{background:#14352f;border-color:#255947;color:#72d6ae}
-    #appView .pill{background:#14352f;color:#72d6ae}#appView .notice{background:#332b19;border-color:#5a4822;color:#e8c77d}
-    #appView .btn{background:#655bd5;color:#fff}#appView .btn:hover{background:#766be8}
-    .board{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:13px;overflow-x:auto}.board-column{min-height:180px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#111827}.board-column h3{margin:0 0 12px;color:#cbd2e0;font-size:12px}.board-count{float:right;color:#9da7bb}.board-card{margin:8px 0;padding:12px;border:1px solid #303a50;border-radius:8px;background:#1a2333}.board-card strong{display:block;color:#e7eaf3;font-size:12px}.board-card small{display:block;margin-top:7px;color:#98a3b8;font-size:10px}.mini-chart{width:100%;height:auto;min-height:190px}.activity-item{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);color:#cbd2e0;font-size:11px}.activity-item small{color:#8f9ab0}.role-badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#29264f;color:#bdb7ff;font-size:10px;font-weight:700}.kpiDeck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.kpiCard{padding:16px;border:1px solid var(--line);border-radius:12px;background:#111827}.kpiCard .eyebrow{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9aa6bd}.kpiCard .big{margin-top:14px;color:#f4f7ff;font:800 28px/1.1 'Manrope',sans-serif;letter-spacing:-.04em}.kpiCard .micro{margin-top:6px;font-size:11px;color:#93a0b3}.statusDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.green{background:#57cba0}.amber{background:#f4bf57}.blue{background:#8b83ff}.red{background:#f57575}
-    @media(max-width:900px){.board{grid-template-columns:repeat(4,minmax(200px,1fr))}.kpiDeck{grid-template-columns:1fr 1fr}}`;
-  document.head.appendChild(style);
-}
-function showLogin(msg = "") {
-  $("loginView").classList.remove("hidden"); $("appView").classList.add("hidden"); $("resetView").classList.add("hidden");
-  if (msg) $("loginMessage").textContent = msg;
-}
-function showApp() {
-  $("loginView").classList.add("hidden"); $("resetView").classList.add("hidden"); $("appView").classList.remove("hidden");
-  renderPage("dashboard");
-}
-function money(value) { return "₹" + Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-}
-function addNavigation() {
-  const nav = $("nav");
-  if (!nav) return;
-  const pages = [
-    ["crm", "◎", "CRM Overview"], ["pipeline", "▤", "Project Pipeline"], ["team", "◫", "Team Performance"], ["approvals", "✓", "Approvals"], ["audit", "≡", "Audit Logs"], ["compliance", "⎈", "Compliance"], ["access", "⚿", "Roles & Access"]
-  ];
-  pages.forEach(([page, icon, label]) => {
-    if (!nav.querySelector(`[data-page="${page}"]`)) nav.insertAdjacentHTML("beforeend", `<button data-page="${page}"><span class="nav-icon">${icon}</span>${label}</button>`);
-  });
-  if (!nav.querySelector('[data-page="sales"]')) nav.insertAdjacentHTML("beforeend", '<button data-page="sales"><span class="nav-icon">↗</span>Sales Reports</button>');
-}
-async function signIn(email, password) {
-  if (!sb) { $("loginMessage").textContent = "Supabase could not initialize. Check the Supabase library and app.js configuration."; return; }
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { $("loginMessage").textContent = error.message; return; }
-  showApp();
-}
-async function signOut() { if (sb) await sb.auth.signOut(); currentUser = null; currentRole = "staff"; showLogin("You have signed out."); }
-async function forgotPassword() {
-  const email = $("email").value.trim();
-  if (!email) { $("loginMessage").textContent = "Enter your admin email first."; return; }
-  if (!sb) { $("loginMessage").textContent = "Supabase is not initialized."; return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: "https://admin.vrtechsolutions24.in" });
-  $("loginMessage").textContent = error ? error.message : "Password reset email sent. Please check your inbox.";
-}
-function stat(label, value, hint = "") { return `<div class="stat"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div><div class="hint">${escapeHtml(hint)}</div></div>`; }
-function dashboardHTML() {
-  return `<div class="kpiDeck">
-    <div class="kpiCard"><div class="eyebrow"><span class="statusDot green"></span>Sales</div><div class="big">₹ 0</div><div class="micro">Monthly revenue run rate</div></div>
-    <div class="kpiCard"><div class="eyebrow"><span class="statusDot blue"></span>Pipeline</div><div class="big">0</div><div class="micro">Qualified opportunities</div></div>
-    <div class="kpiCard"><div class="eyebrow"><span class="statusDot amber"></span>Efficiency</div><div class="big">0%</div><div class="micro">On-time delivery rate</div></div>
-  </div>
-  <div class="grid">${stat("Total Customers", "—", "CRM accounts")}${stat("Open Enquiries", "—", "Sales opportunities")}${stat("Active Projects", "—", "Delivery pipeline")}${stat("Pending Payments", "—", "Invoice balance")}${stat("Total Income", "—", "Recorded income")}${stat("Total Expenses", "—", "Recorded expenses")}${stat("Net Profit", "—", "Income less expenses")}${stat("Team Members", "—", "Employee records")}</div>
-    <div class="section"><h2>Revenue performance · recent months</h2><div id="dashboardChart" class="empty">Loading chart…</div></div>
-    <div class="section"><h2>Quick Actions</h2><div class="quick"><button data-go="crm"><strong>◎ Open CRM</strong><span>Review customer and lead funnel</span></button><button data-go="pipeline"><strong>▤ Project pipeline</strong><span>Track delivery stages</span></button><button data-go="team"><strong>◫ Team performance</strong><span>Monitor productivity and utilization</span></button><button data-go="approvals"><strong>✓ Approval inbox</strong><span>Review pending requests</span></button><button data-go="sales"><strong>↗ Sales reports</strong><span>Review revenue trends</span></button><button data-go="audit"><strong>≡ Audit activity</strong><span>Review available audit records</span></button></div></div>
-    <div class="section"><h2>Recent business activity</h2><div id="recentActivity" class="empty">Loading latest transactions…</div></div>`;
-}
-const formFields = {
-  customers: [["Customer name", "name"], ["Phone", "phone", "tel"], ["Email", "email", "email"], ["Address", "address"]],
-  enquiries: [["Customer name", "customer_name"], ["Phone", "phone", "tel"], ["Email", "email", "email"], ["Service", "service"], ["Details", "details", "textarea"]],
-  projects: [["Project name", "project_name"], ["Customer ID (optional)", "customer_id", "number"], ["Price (₹)", "price", "number"], ["Start date", "start_date", "date"], ["Deadline", "deadline", "date"]],
-  finance: [["Transaction type", "transaction_type", "select", ["Income", "Expense"]], ["Category", "category"], ["Amount (₹)", "amount", "number"], ["Description", "description"], ["Date", "transaction_date", "date"]],
-  staff: [["Employee name", "name"], ["Phone", "phone", "tel"], ["Monthly salary (₹)", "monthly_salary", "number"], ["Email", "email", "email"], ["Job title", "job_title"], ["Department", "department"]],
-  invoices: [["Invoice number", "invoice_number"], ["Customer ID (optional)", "customer_id", "number"], ["Total amount (₹)", "total_amount", "number"], ["Paid amount (₹)", "paid_amount", "number"], ["Invoice date", "invoice_date", "date"], ["Due date", "due_date", "date"]]
-};
-function fieldHTML([label, name, type = "text", options = []]) {
-  const safeName = escapeHtml(name);
-  let control;
-  if (type === "select") control = `<select name="${safeName}" required>${options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("")}</select>`;
-  else if (type === "textarea") control = `<textarea name="${safeName}" rows="3"></textarea>`;
-  else control = `<input name="${safeName}" type="${escapeHtml(type)}" ${type === "number" ? 'min="0" step="0.01"' : ""} ${["name", "customer_name", "project_name", "amount"].includes(name) ? "required" : ""}>`;
-  return `<div><label>${escapeHtml(label)}</label>${control}</div>`;
-}
-function recordPageHTML(page) {
-  const title = pageInfo[page][0];
-  const fields = formFields[page] || [];
-  return `<div class="section"><h2>Add ${escapeHtml(title.replace(/s$/i, ""))}</h2><form id="recordForm"><div class="formrow">${fields.map(fieldHTML).join("")}</div><button class="btn" type="submit">Save record</button> <span id="formMessage" class="message" role="status" aria-live="polite"></span></form></div><div class="section"><h2>${escapeHtml(title)} list</h2><div class="tablewrap" id="tableData"><div class="empty">Loading records…</div></div></div>`;
-}
-function salesHTML() {
-  return `<div class="section"><h2>Reporting period</h2><div class="formrow"><div><label for="salesFrom">From</label><input id="salesFrom" type="date"></div><div><label for="salesTo">To</label><input id="salesTo" type="date"></div></div><button id="runSalesReport" class="btn" type="button">Apply date range</button><p id="salesMessage" class="message" role="status">Sales use income transactions from the transactions table.</p></div><div id="salesMetrics" class="grid">${stat("Sales revenue", "—", "Income transactions")}${stat("Expenses", "—", "Recorded expenses")}${stat("Net sales", "—", "Revenue less expenses")}${stat("Invoice balance", "—", "Outstanding amount")}</div><div class="section"><h2>Monthly revenue</h2><div id="salesChart" class="empty">Loading sales data…</div></div><div class="section"><h2>Latest sales transactions</h2><div id="salesTable" class="empty">Loading transactions…</div></div>`;
-}
-function crmHTML() {
-  return `<div class="grid">${stat("Customers", "—", "Total customer accounts")}${stat("Leads", "—", "Open enquiries")}${stat("Won revenue", "—", "Income transactions")}${stat("Lead conversion", "—", "Won projects / enquiries")}</div><div class="section"><h2>Lead conversion funnel</h2><div id="crmFunnel" class="empty">Loading CRM overview…</div></div><div class="section"><h2>Recent leads</h2><div id="crmLeads" class="empty">Loading enquiries…</div></div>`;
-}
-function pipelineHTML() {
-  return `<div class="section"><h2>Delivery pipeline</h2><p>Projects are grouped by their status field. Status updates should be restricted by database RLS.</p><div id="pipelineBoard" class="empty">Loading project pipeline…</div></div>`;
-}
-function teamHTML() {
-  return `<div class="grid">${stat("Team members", "—", "Active staff")}${stat("Avg. salary", "—", "Monthly payroll")}${stat("Productive projects", "—", "Ongoing delivery")}${stat("Utilization", "—", "Capacity used")}</div><div class="section"><h2>Team productivity</h2><div id="teamPerformance" class="empty">Loading team performance…</div></div><div class="section"><h2>Staff directory</h2><div id="teamList" class="empty">Loading staff…</div></div>`;
-}
-function approvalsHTML() {
-  return `<div class="section"><h2>Submit an approval request</h2><p>Requests are stored only when the protected approval_requests table and its policies are configured.</p><form id="approvalForm"><div class="formrow"><div><label for="approvalTitle">Request title</label><input id="approvalTitle" required maxlength="120"></div><div><label for="approvalAmount">Amount (optional, ₹)</label><input id="approvalAmount" type="number" min="0" step="0.01"></div><div><label for="approvalDetails">Reason / details</label><textarea id="approvalDetails" rows="3" required></textarea></div></div><button class="btn" type="submit">Submit for approval</button> <span id="approvalMessage" class="message" role="status"></span></form></div><div class="section"><h2>Approval inbox</h2><div id="approvalList" class="empty">Loading requests…</div></div>`;
-}
-function accessHTML() {
-  return `<div class="grid">${stat("Signed-in account", currentUser?.email || "—", "Authenticated session")}${stat("Assigned role", "Checking…", "Protected user_roles lookup")}${stat("Access enforcement", "Database RLS", "UI role checks are not security controls")}${stat("Account status", "Active session", "Supabase authenticated")}</div><div class="section"><h2>Role-based access</h2><p id="roleDetails">Checking role assignment…</p><div class="tablewrap"><table><thead><tr><th>Role</th><th>Intended access</th></tr></thead><tbody><tr><td><span class="role-badge">super_admin</span></td><td>Company-wide administration, access governance, audit review</td></tr><tr><td><span class="role-badge">admin</span></td><td>Operations, CRM, finance and reporting</td></tr><tr><td><span class="role-badge">manager</span></td><td>Team, CRM, projects and approvals</td></tr><tr><td><span class="role-badge">finance</span></td><td>Transactions, invoices and finance reports</td></tr><tr><td><span class="role-badge">staff</span></td><td>Assigned operational workspace</td></tr></tbody></table></div><div id="accessStatus" class="notice">Configure user_roles and restrictive Supabase RLS policies. Never grant roles or change privileges from this browser-only screen.</div></div>`;
-}
-function complianceHTML() {
-  return `<div class="grid">${stat("Control checks", "—", "Policies reviewed")}${stat("Open issues", "—", "Manual follow-up")}${stat("Audit trails", "—", "Events recorded")}${stat("Compliance score", "—", "Quarterly rating")}</div><div class="section"><h2>Compliance overview</h2><p>Compliance processes should be governed by secure server-side policies and scheduled checks. This UI provides a summary layer only.</p><div id="complianceList" class="empty">Loading compliance overview…</div></div>`;
-}
-function pageHTML(page) {
-  if (page === "dashboard") return dashboardHTML();
-  if (page === "crm") return crmHTML();
-  if (page === "pipeline") return pipelineHTML();
-  if (page === "team") return teamHTML();
-  if (page === "approvals") return approvalsHTML();
-  if (page === "audit") return `<div class="section"><h2>Administrative events</h2><p>Audit records are shown only if the protected audit_logs table and policies are configured. Logs should be written by trusted server-side code.</p><div id="auditList" class="empty">Loading audit history…</div></div>`;
-  if (page === "compliance") return complianceHTML();
-  if (page === "sales") return salesHTML();
-  if (page === "access") return accessHTML();
-  if (page === "reports") return `<div class="section"><h2>Company performance</h2><p>Use the live KPI dashboard and date-filtered sales reporting for current business metrics.</p><div class="quick"><button data-go="dashboard"><strong>Executive dashboard</strong><span>Company-wide KPIs and trends</span></button><button data-go="sales"><strong>Sales reports</strong><span>Date-filtered revenue charts</span></button><button data-go="crm"><strong>CRM conversion</strong><span>Leads and customers</span></button></div></div>`;
-  if (tableNames[page]) return recordPageHTML(page);
-  return `<div class="section"><h2>${escapeHtml(pageInfo[page][0])}</h2><div class="empty">This workspace is not configured.</div></div>`;
-}
-async function renderPage(page) {
-  if (!pageInfo[page]) page = "dashboard";
-  if (!canAccess(page)) page = "dashboard";
-  document.querySelectorAll("#nav button").forEach((button) => button.classList.toggle("active", button.dataset.page === page));
-  $("pageTitle").textContent = pageInfo[page][0]; $("pageSubtitle").textContent = pageInfo[page][1]; $("pageContent").innerHTML = pageHTML(page);
-  document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => renderPage(button.dataset.go)));
-  const form = $("recordForm"); if (form) form.addEventListener("submit", (event) => saveRecord(event, page));
-  if (page === "dashboard") await loadDashboard();
-  else if (page === "crm") await loadCRM();
-  else if (page === "pipeline") await loadPipeline();
-  else if (page === "team") await loadTeam();
-  else if (page === "sales") { const today = new Date(); $("salesFrom").value = dateInput(new Date(today.getFullYear(), today.getMonth(), 1)); $("salesTo").value = dateInput(today); $("runSalesReport").addEventListener("click", loadSalesReport); await loadSalesReport(); }
-  else if (page === "approvals") { $("approvalForm").addEventListener("submit", submitApproval); await loadApprovals(); }
-  else if (page === "audit") await loadAudit();
-  else if (page === "compliance") await loadCompliance();
-  else if (page === "access") await loadRoleInfo();
-  else if (tableNames[page]) await loadRecords(page);
-}
-function canAccess(page) { return (rolePageAccess[currentRole] || rolePageAccess.staff).includes(page); }
-function dateInput(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
-async function fetchRows(table, select = "*") {
-  if (!sb) throw new Error("Supabase is not initialized.");
-  const { data, error } = await sb.from(table).select(select).limit(1000);
-  if (error) throw error;
-  return data || [];
-}
-async function loadRecords(page) {
-  const holder = $("tableData"); if (!holder) return;
-  if (!sb) { holder.innerHTML = '<div class="empty">Supabase is not initialized. Check the application configuration.</div>'; return; }
-  holder.innerHTML = '<div class="empty">Loading records…</div>';
-  try {
-    const { data, error } = await sb.from(tableNames[page]).select("*").order("created_at", { ascending: false }).limit(100);
-    if (error) throw error;
-    if (!data?.length) { holder.innerHTML = `<div class="empty">No ${escapeHtml(page)} found yet.</div>`; return; }
-    const preferred = page === "enquiries" ? ["customer_name", "phone", "email", "service", "status", "created_at"] : Object.keys(data[0]);
-    const keys = preferred.filter((key) => Object.hasOwn(data[0], key)).slice(0, 8);
-    holder.innerHTML = `<table><thead><tr>${keys.map((key) => `<th>${escapeHtml(key.replaceAll("_", " "))}</th>`).join("")}</tr></thead><tbody>${data.map((row) => `<tr>${keys.map((key) => `<td>${escapeHtml(key === "created_at" && row[key] ? new Date(row[key]).toLocaleString("en-IN") : row[key] ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
-  } catch (error) { console.error("Portal records query failed:", error); holder.innerHTML = `<div class="empty"><strong>Could not load ${escapeHtml(page)}.</strong><p>${escapeHtml(error.message || "Check table configuration and RLS policies.")}</p></div>`; }
-}
-async function saveRecord(event, page) {
-  event.preventDefault(); const form = event.currentTarget; const message = $("formMessage");
-  if (!sb) { message.textContent = "Supabase client is not initialized."; return; }
-  const record = Object.fromEntries(new FormData(form).entries());
-  Object.keys(record).forEach((key) => { if (record[key] === "") delete record[key]; });
-  if (record.customer_id) record.customer_id = Number(record.customer_id);
-  ["price", "amount", "monthly_salary", "total_amount", "paid_amount"].forEach((key) => { if (record[key] !== undefined) record[key] = Number(record[key]); });
-  if (page === "enquiries" && !record.status) record.status = "New";
-  if (page === "projects" && !record.status) record.status = "Planning";
-  if (page === "staff") record.active = true;
-  const { error } = await sb.from(tableNames[page]).insert(record);
-  if (error) { message.textContent = `Save failed: ${error.message}`; return; }
-  message.textContent = "Saved successfully."; form.reset(); await loadRecords(page);
-  if (page === "staff") await writeAudit("employee.created", { name: record.name });
-}
-function sumType(rows, type) { return rows.filter((row) => String(row.transaction_type).toLowerCase() === type).reduce((sum, row) => sum + Number(row.amount || 0), 0); }
-async function loadDashboard() {
-  if (!sb) return;
-  const counts = { customers: "customers", enquiries: "enquiries", projects: "projects", staff: "staff" };
-  const countValues = {};
-  await Promise.all(Object.entries(counts).map(async ([key, table]) => { const { count, error } = await sb.from(table).select("*", { count: "exact", head: true }); countValues[key] = error ? "—" : count; }));
-  const [tx, invoices, recent] = await Promise.all([
-    sb.from("transactions").select("transaction_type,amount,transaction_date,description,created_at").limit(1000),
-    sb.from("invoices").select("total_amount,paid_amount").limit(1000),
-    sb.from("transactions").select("transaction_type,amount,transaction_date,description,created_at").order("created_at", { ascending: false }).limit(6)
-  ]);
-  const rows = tx.error ? [] : tx.data || []; const income = sumType(rows, "income"); const expenses = sumType(rows, "expense");
-  const due = invoices.error ? null : (invoices.data || []).reduce((sum, row) => sum + Math.max(0, Number(row.total_amount || 0) - Number(row.paid_amount || 0)), 0);
-  const { count: dueCount, error: dueError } = await sb.from("invoices").select("*", { count: "exact", head: true }).lt("paid_amount", "total_amount");
-  const metrics = [countValues.customers, countValues.enquiries, countValues.projects, dueError || due === null ? "—" : money(due), tx.error ? "—" : money(income), tx.error ? "—" : money(expenses), tx.error ? "—" : money(income - expenses), countValues.staff];
-  const valueTargets = document.querySelectorAll("#pageContent .stat .value");
-  valueTargets.forEach((cell, index) => { cell.textContent = metrics[index] ?? "—"; });
-  const salesCard = document.querySelector("#pageContent .kpiCard:nth-child(1) .big");
-  const pipelineCard = document.querySelector("#pageContent .kpiCard:nth-child(2) .big");
-  const effCard = document.querySelector("#pageContent .kpiCard:nth-child(3) .big");
-  if (salesCard) salesCard.textContent = tx.error ? "—" : money(income);
-  if (pipelineCard) pipelineCard.textContent = countValues.projects === "—" ? "—" : String(countValues.projects);
-  if (effCard) effCard.textContent = income + expenses ? `${Math.min(100, Math.round((income / Math.max(1, income + expenses)) * 100))}%` : "0%";
-  renderMonthlyChart(rows.filter((row) => String(row.transaction_type).toLowerCase() === "income"), $("dashboardChart"));
-  const activity = $("recentActivity");
-  if (activity) activity.innerHTML = recent.error ? "Recent transactions unavailable; check database access." : recent.data?.length ? renderActivity(recent.data) : "No recent transactions to show.";
-  const dueStat = document.querySelector("#pageContent .stat:nth-child(4) .hint");
-  if (dueStat) dueStat.textContent = dueError ? "Invoice balance unavailable" : `${dueCount ?? 0} unpaid invoices`;
-}
-function renderActivity(rows) {
-  return rows.map((row) => `<div class="activity-item"><span><strong>${escapeHtml(row.transaction_type || "Activity")}</strong> · ${escapeHtml(row.description || "Business transaction")}</span><small>${escapeHtml(row.transaction_date || row.created_at || "")}</small><strong>${money(row.amount)}</strong></div>`).join("");
-}
-async function loadCRM() {
-  const funnel = $("crmFunnel");
-  try {
-    const [customers, enquiries, projects, tx] = await Promise.all([fetchRows("customers"), fetchRows("enquiries"), fetchRows("projects"), fetchRows("transactions", "transaction_type,amount")]);
-    const revenue = sumType(tx, "income");
-    const won = projects.filter((row) => /complete|won|delivered/i.test(String(row.status || ""))).length;
-    const rate = enquiries.length ? `${Math.round(won / enquiries.length * 100)}%` : "—";
-    document.querySelectorAll("#pageContent .stat .value").forEach((cell, index) => { cell.textContent = [customers.length, enquiries.length, money(revenue), rate][index] ?? "—"; });
-    const stages = [["New leads", enquiries.filter((row) => /new|open|pending/i.test(String(row.status || "new"))).length], ["In progress", enquiries.filter((row) => /contact|qualif|progress/i.test(String(row.status || ""))).length], ["Projects won", won]];
-    funnel.innerHTML = `<div class="quick">${stages.map(([label, count]) => `<div class="stat"><div class="label">${label}</div><div class="value">${count}</div><div class="hint">Current records</div></div>`).join("")}</div>`;
-    const holder = $("crmLeads");
-    holder.innerHTML = enquiries.length ? `<div class="tablewrap"><table><thead><tr><th>Lead</th><th>Service</th><th>Status</th><th>Created</th></tr></thead><tbody>${enquiries.slice(0, 12).map((row) => `<tr><td>${escapeHtml(row.customer_name || row.name || "—")}</td><td>${escapeHtml(row.service || "—")}</td><td>${escapeHtml(row.status || "New")}</td><td>${escapeHtml(row.created_at || "—")}</td></tr>`).join("")}</tbody></table></div>` : "No enquiries found.";
-  } catch (error) { funnel.innerHTML = `<div class="empty">CRM overview needs readable customers, enquiries, projects and transactions tables. ${escapeHtml(error.message)}</div>`; }
-}
-async function loadPipeline() {
-  const holder = $("pipelineBoard");
-  try {
-    const projects = await fetchRows("projects");
-    const stages = ["Planning", "In Progress", "Review", "Completed"];
-    const columns = stages.map((stage) => {
-      const rows = projects.filter((project) => {
-        const status = String(project.status || "Planning").toLowerCase();
-        if (stage === "Planning") return /new|planning|pending|backlog/.test(status);
-        if (stage === "In Progress") return /progress|active|started/.test(status);
-        if (stage === "Review") return /review|hold|approval/.test(status);
-        return /complete|done|delivered|closed/.test(status);
-      });
-      return `<section class="board-column"><h3>${stage}<span class="board-count">${rows.length}</span></h3>${rows.length ? rows.map((project) => `<article class="board-card"><strong>${escapeHtml(project.project_name || project.name || "Project")}</strong><small>${escapeHtml(project.status || stage)}${project.deadline ? ` · Due ${escapeHtml(project.deadline)}` : ""}</small>${project.price ? `<small>Value ${money(project.price)}</small>` : ""}</article>`).join("") : '<div class="empty">No projects</div>'}</section>`;
-    }).join("");
-    holder.innerHTML = `<div class="board">${columns}</div>`;
-  } catch (error) { holder.innerHTML = `<div class="empty">Pipeline requires a readable projects table. ${escapeHtml(error.message)}</div>`; }
-}
-async function loadTeam() {
-  const holder = $("teamPerformance"); const teamList = $("teamList");
-  try {
-    const staff = await fetchRows("staff");
-    const totalSalary = staff.reduce((sum, row) => sum + Number(row.monthly_salary || 0), 0);
-    const utilization = staff.length ? Math.min(100, Math.round((staff.filter((row) => row.active !== false).length / Math.max(staff.length, 1)) * 100)) : 0;
-    const activeProjects = await fetchRows("projects");
-    document.querySelectorAll("#pageContent .stat .value").forEach((cell, index) => { cell.textContent = [staff.length, money(totalSalary), activeProjects.filter((row) => /progress|active|new|planning/i.test(String(row.status || ""))).length, `${utilization}%`][index] ?? "—"; });
-    holder.innerHTML = `<div class="quick">${[['Productivity', `${Math.min(100, Math.round((activeProjects.length / Math.max(staff.length, 1)) * 35 + 40))}%`], ['Attendance', '97%'], ['Avg. response', '2.4 hrs']].map(([label, value]) => `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">Current performance</div></div>`).join("")}</div>`;
-    teamList.innerHTML = staff.length ? `<div class="tablewrap"><table><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Mobile</th></tr></thead><tbody>${staff.slice(0, 12).map((row) => `<tr><td>${escapeHtml(row.name || "—")}</td><td>${escapeHtml(row.job_title || row.role || "—")}</td><td>${escapeHtml(row.department || "—")}</td><td>${escapeHtml(row.phone || "—")}</td></tr>`).join("")}</tbody></table></div>` : "No staff records found.";
-  } catch (error) {
-    holder.innerHTML = `<div class="empty">Team metrics require a readable staff table. ${escapeHtml(error.message)}</div>`;
-  }
-}
-async function loadSalesReport() {
-  const message = $("salesMessage"); if (!sb) { message.textContent = "Supabase is not initialized."; return; }
-  const from = $("salesFrom").value, to = $("salesTo").value;
-  if (from && to && from > to) { message.textContent = "Choose a start date before the end date."; return; }
-  message.textContent = "Loading sales data…"; const holder = $("salesTable"); holder.innerHTML = '<div class="empty">Loading…</div>';
-  const [tx, invoices] = await Promise.all([sb.from("transactions").select("transaction_type,amount,transaction_date,description,created_at").limit(2000), sb.from("invoices").select("total_amount,paid_amount,invoice_date,created_at").limit(2000)]);
-  if (tx.error) { message.textContent = `Could not load sales: ${tx.error.message}`; holder.textContent = "Check transaction table access and RLS."; return; }
-  const inRange = (row, key) => { const date = String(row[key] || row.created_at || "").slice(0, 10); return (!from || date >= from) && (!to || date <= to); };
-  const filtered = (tx.data || []).filter((row) => inRange(row, "transaction_date")); const income = filtered.filter((row) => String(row.transaction_type).toLowerCase() === "income"); const expenses = sumType(filtered, "expense");
-  const revenue = sumType(income, "income"); const invRows = (invoices.data || []).filter((row) => inRange(row, "invoice_date")); const balance = invRows.reduce((sum, row) => sum + Math.max(0, Number(row.total_amount || 0) - Number(row.paid_amount || 0)), 0);
-  document.querySelectorAll("#salesMetrics .stat .value").forEach((cell, index) => { cell.textContent = [money(revenue), money(expenses), money(revenue - expenses), invoices.error ? "—" : money(balance)][index] ?? "—"; });
-  renderMonthlyChart(income, $("salesChart"));
-  income.sort((a, b) => String(b.transaction_date || b.created_at || "").localeCompare(String(a.transaction_date || a.created_at || "")));
-  holder.innerHTML = income.length ? `<div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead><tbody>${income.slice(0, 30).map((row) => `<tr><td>${escapeHtml(row.transaction_date || row.created_at || "—")}</td><td>${escapeHtml(row.description || "Income transaction")}</td><td>${money(row.amount)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">No income transactions in this date range.</div>';
-  message.textContent = `${income.length} income transactions · ${filtered.length - income.length} other transactions${invoices.error ? " · Invoice totals unavailable" : ""}.`;
-}
-function renderMonthlyChart(rows, holder) {
-  if (!holder) return;
-  const grouped = new Map();
-  rows.forEach((row) => { const date = String(row.transaction_date || row.created_at || ""); if (date.length >= 7) { const month = date.slice(0, 7); grouped.set(month, (grouped.get(month) || 0) + Number(row.amount || 0)); } });
-  const data = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-8);
-  if (!data.length) { holder.innerHTML = '<div class="empty">No dated income transactions available to chart.</div>'; return; }
-  const max = Math.max(...data.map(([, value]) => value), 1); const points = data.map(([month, value], index) => `${30 + index * (640 / Math.max(data.length - 1, 1))},${155 - value / max * 125}`).join(" ");
-  const labels = data.map(([month], index) => `<text x="${30 + index * (640 / Math.max(data.length - 1, 1))}" y="188" text-anchor="middle" fill="#929bb0" font-size="10">${escapeHtml(month.slice(2))}</text>`).join("");
-  holder.innerHTML = `<svg class="mini-chart" viewBox="0 0 700 205" role="img" aria-label="Monthly income trend"><defs><linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8b83ff" stop-opacity=".35"/><stop offset="1" stop-color="#8b83ff" stop-opacity="0"/></linearGradient></defs><path d="M ${points} L ${30 + (data.length - 1) * (640 / Math.max(data.length - 1, 1))},165 L 30,165 Z" fill="url(#revenueFill)"/><polyline points="${points}" fill="none" stroke="#9b93ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${data.map(([month, value], index) => `<circle cx="${30 + index * (640 / Math.max(data.length - 1, 1))}" cy="${155 - value / max * 125}" r="4" fill="#c6c1ff"><title>${escapeHtml(month)}: ${money(value)}</title></circle>`).join("")}${labels}</svg>`;
-}
-async function submitApproval(event) {
-  event.preventDefault(); const message = $("approvalMessage");
-  const request = { title: $("approvalTitle").value.trim(), details: $("approvalDetails").value.trim(), amount: $("approvalAmount").value ? Number($("approvalAmount").value) : null, status: "pending", requested_by: currentUser?.id };
-  const { error } = await sb.from("approval_requests").insert(request);
-  if (error) { message.textContent = `Could not submit. Configure approval_requests and RLS: ${error.message}`; return; }
-  message.textContent = "Request submitted for review."; event.currentTarget.reset(); await writeAudit("approval.submitted", { title: request.title }); await loadApprovals();
-}
-async function loadApprovals() {
-  const holder = $("approvalList");
-  try {
-    const rows = await fetchRows("approval_requests");
-    if (!rows.length) { holder.textContent = "No approval requests found."; return; }
-    holder.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Request</th><th>Amount</th><th>Status</th><th>Requested</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.title || row.description || "Request")}</td><td>${row.amount == null ? "—" : money(row.amount)}</td><td>${escapeHtml(row.status || "Pending")}</td><td>${escapeHtml(row.created_at || "—")}</td></tr>`).join("")}</tbody></table></div>`;
-  } catch (error) { holder.textContent = `Approval inbox unavailable. Configure approval_requests with RLS policies. ${error.message}`; }
-}
-async function loadAudit() {
-  const holder = $("auditList");
-  try {
-    const { data, error } = await sb.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(100);
-    if (error) throw error;
-    if (!data?.length) { holder.textContent = "No audit events found."; return; }
-    const columns = Object.keys(data[0]).slice(0, 6);
-    holder.innerHTML = `<div class="tablewrap"><table><thead><tr>${columns.map((key) => `<th>${escapeHtml(key.replaceAll("_", " "))}</th>`).join("")}</tr></thead><tbody>${data.map((row) => `<tr>${columns.map((key) => `<td>${escapeHtml(typeof row[key] === "object" ? JSON.stringify(row[key]) : row[key] ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-  } catch (error) { holder.textContent = `Audit logs are unavailable. Configure a protected audit_logs table and server-side event recording. ${error.message}`; }
-}
-async function loadCompliance() {
-  const holder = $("complianceList");
-  try {
-    const rows = await fetchRows("audit_logs", "action,created_at");
-    const controlChecks = [{ label: "Policy review", value: `${rows.length || 0}`, note: "Audit records" }, { label: "Issue follow-up", value: "2", note: "Pending controls" }, { label: "Quarterly score", value: "96%", note: "Healthy" }];
-    const metricHtml = controlChecks.map((item) => `<div class="stat"><div class="label">${item.label}</div><div class="value">${item.value}</div><div class="hint">${item.note}</div></div>`).join("");
-    holder.innerHTML = `<div class="grid">${metricHtml}</div><div class="tablewrap" style="margin-top:16px"><table><thead><tr><th>Event</th><th>Timestamp</th></tr></thead><tbody>${rows.slice(0, 8).map((row) => `<tr><td>${escapeHtml(row.action || "control.review")}</td><td>${escapeHtml(row.created_at || "—")}</td></tr>`).join("")}</tbody></table></div>`;
-  } catch (error) { holder.innerHTML = `<div class="empty">Compliance center is unavailable. Configure a protected audit_logs table and RLS rules. ${escapeHtml(error.message)}</div>`; }
-}
-async function writeAudit(action, metadata = {}) {
-  if (!sb || !currentUser) return;
-  const { error } = await sb.from("audit_logs").insert({ actor_id: currentUser.id, action, metadata });
-  if (error) console.info("Audit event not persisted; configure server-side audit logging and RLS.", error.message);
-}
-async function loadRoleInfo() {
-  if (!currentUser || !sb) return;
-  const details = $("roleDetails");
-  try {
-    const { data, error } = await sb.from("user_roles").select("role").eq("user_id", currentUser.id).maybeSingle();
-    if (error) throw error;
-    const role = String(data?.role || "staff").toLowerCase();
-    currentRole = Object.hasOwn(rolePageAccess, role) ? role : "staff";
-    const cells = document.querySelectorAll("#pageContent .stat .value");
-    if (cells[0]) cells[0].textContent = currentUser.email || "Authenticated";
-    if (cells[1]) cells[1].textContent = currentRole;
-    details.textContent = data ? `The protected user_roles record reports “${currentRole}”. This interface applies convenience navigation only; RLS must enforce access to every row and action.` : "No user_roles record was returned. The interface defaults to staff access; no elevated permissions are assumed.";
-    if (currentRole === "super_admin") $("accessStatus").textContent = "A super_admin role is recorded. Keep policies restrictive and perform privileged role changes only through a trusted, audited server-side workflow.";
-    document.querySelectorAll("#nav button[data-page]").forEach((button) => { button.hidden = !canAccess(button.dataset.page); });
-  } catch (error) {
-    currentRole = "staff";
-    const cells = document.querySelectorAll("#pageContent .stat .value"); if (cells[1]) cells[1].textContent = "Not configured";
-    details.textContent = "Role lookup is unavailable. Configure user_roles and RLS before relying on role-based access.";
-    $("accessStatus").textContent = `No elevated access assumed. Role lookup failed: ${error.message}`;
-  }
-}
-function bindEvents() {
-  $("loginForm").addEventListener("submit", (event) => { event.preventDefault(); signIn($("email").value.trim(), $("password").value); });
-  $("forgotBtn").addEventListener("click", forgotPassword); $("logoutBtn").addEventListener("click", signOut);
-  $("refreshBtn").addEventListener("click", () => renderPage(document.querySelector("#nav button.active")?.dataset.page || "dashboard"));
-  $("nav").addEventListener("click", (event) => { const button = event.target.closest("button[data-page]"); if (button && !button.hidden) renderPage(button.dataset.page); });
-  $("resetForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const password = $("newPassword").value; if (password !== $("confirmPassword").value) { $("resetMessage").textContent = "Passwords do not match."; return; } const { error } = await sb.auth.updateUser({ password }); $("resetMessage").textContent = error ? error.message : "Password updated successfully."; if (!error) setTimeout(showApp, 900); });
-  $("backToLoginBtn")?.addEventListener("click", () => { history.replaceState({}, document.title, location.pathname); showLogin(); });
-  document.querySelector(".search input")?.addEventListener("input", (event) => { const term = event.target.value.trim().toLowerCase(); document.querySelectorAll("#pageContent tbody tr").forEach((row) => { row.hidden = !row.textContent.toLowerCase().includes(term); }); });
-}
-
-initClient();
-installEnterpriseTheme();
-addNavigation();
-bindEvents();
-if (!sb) showLogin("Supabase could not initialize. Check the Supabase library and configuration.");
-else {
-  if (location.hash.includes("type=recovery")) { $("loginView").classList.add("hidden"); $("resetView").classList.remove("hidden"); }
-  sb.auth.getSession().then(({ data, error }) => {
-    if (error) { showLogin(`Could not check login session: ${error.message}`); return; }
-    currentUser = data.session?.user || null;
-    if (currentUser) showApp(); else if (!location.hash.includes("type=recovery")) showLogin();
-  }).catch((error) => showLogin(`Session error: ${error.message}`));
-  sb.auth.onAuthStateChange((event, session) => {
-    if (session?.user) currentUser = session.user;
-    if (event === "SIGNED_IN" && session) setTimeout(showApp, 0);
-    else if (event === "SIGNED_OUT") { currentUser = null; currentRole = "staff"; showLogin(); }
-    else if (event === "PASSWORD_RECOVERY") { $("loginView").classList.add("hidden"); $("resetView").classList.remove("hidden"); }
-  });
-}
+initStyle: { installStyle(); }
+addNav();setupTheme();setupNotifications();bind();
+if(SUPABASE_URL.startsWith("https://")&&window.supabase)sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+if(!sb)showLogin("Supabase unavailable. Check the CDN connection and configuration.");else{if(location.hash.includes("type=recovery")){$("loginView").classList.add("hidden");$("resetView").classList.remove("hidden")}sb.auth.getSession().then(({data,error})=>{if(error){showLogin(error.message);return}currentUser=data.session?.user||null;if(currentUser)showApp();else if(!location.hash.includes("type=recovery"))showLogin()}).catch(e=>showLogin(e.message));sb.auth.onAuthStateChange((event,session)=>{if(session?.user)currentUser=session.user;if(event==="SIGNED_IN"&&session)setTimeout(showApp,0);else if(event==="SIGNED_OUT"){currentUser=null;currentRole="staff";showLogin()}else if(event==="PASSWORD_RECOVERY"){$("loginView").classList.add("hidden");$("resetView").classList.remove("hidden")}})}
