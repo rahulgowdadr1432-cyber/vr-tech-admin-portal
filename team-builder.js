@@ -1,4 +1,4 @@
-/* MFA gate for the existing Supabase admin-portal login. This file is loaded by index.html after app.js. */
+/* MFA gate for the existing Supabase admin-portal login. Loaded after app.js. */
 (() => {
   if (typeof sb === "undefined" || !sb) return;
 
@@ -10,7 +10,7 @@
   style.textContent = `
     #portalMfaGate{position:fixed;z-index:10000;inset:0;display:none;place-items:center;padding:20px;background:rgba(3,12,20,.94);backdrop-filter:blur(10px)}
     #portalMfaGate.open{display:grid}.portal-mfa-card{width:min(100%,430px);padding:28px;border:1px solid rgba(83,216,194,.28);border-radius:18px;background:#102532;color:#e8f0f3;box-shadow:0 24px 70px #0009}
-    .portal-mfa-card h2{margin:0 0 8px}.portal-mfa-card p{color:#a7bac3;line-height:1.55}.portal-mfa-card img{display:block;width:210px;height:210px;margin:16px auto;padding:8px;background:#fff;border-radius:10px}
+    .portal-mfa-card h2{margin:0 0 8px}.portal-mfa-card p{color:#a7bac3;line-height:1.55}.portal-mfa-card img{display:block;width:210px;height:210px;object-fit:contain;margin:16px auto;padding:8px;background:#fff;border-radius:10px}
     .portal-mfa-card input{width:100%;height:48px;margin:12px 0 6px;padding:0 14px;border:1px solid #35505b;border-radius:9px;background:#091822;color:#fff;font-size:20px;text-align:center;letter-spacing:.35em}
     .portal-mfa-card button{width:100%;height:44px;margin-top:10px;border:0;border-radius:9px;background:#53d8c2;color:#09212a;font-weight:800;cursor:pointer}.portal-mfa-card button.secondary{border:1px solid #35505b;background:transparent;color:#cfe7eb}
     #portalMfaMessage{min-height:20px;margin-top:10px;color:#b9cbd1;font-size:13px}
@@ -34,7 +34,7 @@
   });
 
   // app.js calls showApp after password login and during session restoration.
-  // Replace that entry point so the admin interface cannot appear before MFA.
+  // Keep the admin interface behind the Supabase MFA check.
   showApp = async function portalShowAppWithMfa() {
     if (verificationInProgress) return;
     verificationInProgress = true;
@@ -62,75 +62,115 @@
 
       const { data: factorData, error: factorError } = await sb.auth.mfa.listFactors();
       if (factorError) throw factorError;
-      const verifiedFactor = (factorData.totp || []).find(factor => factor.status === "verified");
+      const totpFactors = factorData.totp || [];
+      const verifiedFactor = totpFactors.find(factor => factor.status === "verified");
       if (verifiedFactor) await promptForCode(verifiedFactor, userId);
-      else await enrollAuthenticator(userId, factorData.totp || []);
+      else await enrollAuthenticator(userId, totpFactors);
     } catch (error) {
-      body.innerHTML = `<p>We could not verify your login securely. Please try again or sign out.</p>`;
+      body.textContent = "We could not verify your login securely. Please try again or sign out.";
       showError(error);
     } finally {
       verificationInProgress = false;
     }
   };
 
-  async function promptForCode(factor, userId) {
-    body.innerHTML = `<p>Enter the 6-digit code from your authenticator app to continue to the admin portal.</p><form id="portalMfaForm"><label for="portalMfaCode">Authenticator code</label><input id="portalMfaCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required aria-label="Six-digit authenticator code"><button type="submit">Verify and continue</button></form>`;
+  function renderCodeForm(prompt, buttonText, qrCode, factor, userId, statusText) {
+    body.replaceChildren();
+    const description = document.createElement("p");
+    description.textContent = prompt;
+    body.appendChild(description);
+
+    if (qrCode) {
+      const image = document.createElement("img");
+      image.alt = "QR code for the admin portal authenticator";
+      image.addEventListener("error", () => {
+        image.replaceWith(Object.assign(document.createElement("p"), {
+          textContent: "The QR image could not be displayed. Refresh the page and try setting up 2FA again."
+        }));
+      }, { once: true });
+      // Set src as a DOM property. Supabase may return an SVG data URI containing
+      // quotes and angle brackets, which must not be interpolated into HTML.
+      image.src = qrCode;
+      body.appendChild(image);
+    }
+
+    const form = document.createElement("form");
+    form.id = "portalMfaForm";
+    const label = document.createElement("label");
+    label.htmlFor = "portalMfaCode";
+    label.textContent = "Authenticator code";
+    const input = document.createElement("input");
+    input.id = "portalMfaCode";
+    input.inputMode = "numeric";
+    input.autocomplete = "one-time-code";
+    input.pattern = "[0-9]{6}";
+    input.maxLength = 6;
+    input.required = true;
+    input.setAttribute("aria-label", "Six-digit authenticator code");
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = buttonText;
+    form.append(label, input, button);
+    body.appendChild(form);
     message.textContent = "";
-    document.getElementById("portalMfaCode").focus();
-    document.getElementById("portalMfaForm").addEventListener("submit", async event => {
+    input.focus();
+
+    form.addEventListener("submit", async event => {
       event.preventDefault();
-      const button = event.currentTarget.querySelector("button");
       button.disabled = true;
-      message.textContent = "Verifying code...";
+      message.textContent = statusText;
       try {
         const { data: challenge, error: challengeError } = await sb.auth.mfa.challenge({ factorId: factor.id });
         if (challengeError) throw challengeError;
-        const { error: verifyError } = await sb.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code: document.getElementById("portalMfaCode").value.trim() });
+        const { error: verifyError } = await sb.auth.mfa.verify({
+          factorId: factor.id,
+          challengeId: challenge.id,
+          code: input.value.trim()
+        });
         if (verifyError) throw verifyError;
         verifiedUserId = userId;
         gate.classList.remove("open");
         originalShowApp();
       } catch (error) {
         showError(error);
-        document.getElementById("portalMfaCode").select();
+        input.select();
         button.disabled = false;
       }
     });
   }
 
+  async function promptForCode(factor, userId) {
+    renderCodeForm(
+      "Enter the 6-digit code from your authenticator app to continue to the admin portal.",
+      "Verify and continue",
+      null,
+      factor,
+      userId,
+      "Verifying code..."
+    );
+  }
+
   async function enrollAuthenticator(userId, factors) {
     const pending = factors.find(factor => factor.status === "unverified");
     if (pending) {
-      body.innerHTML = `<p>An unfinished authenticator setup exists for this account. For security, remove the unverified TOTP factor in Supabase Authentication → Users, then sign in again to set it up.</p>`;
+      body.textContent = "An unfinished authenticator setup exists for this account. For security, remove the unverified TOTP factor in Supabase Authentication → Users, then sign in again to set it up.";
       message.textContent = "Setup was not completed.";
       return;
     }
 
     message.textContent = "Setting up your authenticator...";
-    const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "Admin portal" });
+    const { data: factor, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "Admin portal" });
     if (error) throw error;
-    const factor = data;
-    body.innerHTML = `<p>Scan this QR code with Google Authenticator, Microsoft Authenticator, or another TOTP app. Then enter its 6-digit code to enable 2FA.</p><img alt="QR code for the admin portal authenticator" src="${factor.totp.qr_code}"><form id="portalMfaForm"><label for="portalMfaCode">Authenticator code</label><input id="portalMfaCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required aria-label="Six-digit authenticator code"><button type="submit">Enable 2FA and continue</button></form>`;
-    message.textContent = "";
-    document.getElementById("portalMfaCode").focus();
-    document.getElementById("portalMfaForm").addEventListener("submit", async event => {
-      event.preventDefault();
-      const button = event.currentTarget.querySelector("button");
-      button.disabled = true;
-      message.textContent = "Verifying setup code...";
-      try {
-        const { data: challenge, error: challengeError } = await sb.auth.mfa.challenge({ factorId: factor.id });
-        if (challengeError) throw challengeError;
-        const { error: verifyError } = await sb.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code: document.getElementById("portalMfaCode").value.trim() });
-        if (verifyError) throw verifyError;
-        verifiedUserId = userId;
-        gate.classList.remove("open");
-        originalShowApp();
-      } catch (error) {
-        showError(error);
-        document.getElementById("portalMfaCode").select();
-        button.disabled = false;
-      }
-    });
+    const qrCode = factor?.totp?.qr_code;
+    if (!qrCode) throw new Error("Supabase did not return a TOTP QR code. Check that TOTP MFA is enabled in the Supabase project.");
+
+    renderCodeForm(
+      "Scan this QR code with Google Authenticator, Microsoft Authenticator, or another TOTP app. Then enter its 6-digit code to enable 2FA.",
+      "Enable 2FA and continue",
+      qrCode,
+      factor,
+      userId,
+      "Verifying setup code..."
+    );
   }
 })();
